@@ -102,7 +102,7 @@ namespace RevitShutteringAddin
 					"Slab Under Shuttering", "Slab Side Shuttering", "Beam Bottom Shuttering", "Beam Side Shuttering", "Column Shuttering", "Wall Shuttering", "Slab Primary Joist", "Slab Secondary Joist", "Slab Scaffold Prop", "Wall Waler",
 					"Wall Push-Pull Prop", "Column Waler", "Column Support Prop", "Beam Bottom Support", "Beam Support Prop", "DOKA Dywidag Tie Rod", "DOKA Wing Nut Plate", "DOKA Perimeter Safety Post"
 				};
-				FilteredElementCollector source = new FilteredElementCollector(document, activeView.Id).OfClass(typeof(DirectShape)).OfCategory(BuiltInCategory.OST_GenericModel);
+				FilteredElementCollector source = new FilteredElementCollector(document, activeView.Id).OfClass(typeof(DirectShape));
 				List<ElementId> list11 = new List<ElementId>();
 				foreach (DirectShape item6 in source.Cast<DirectShape>())
 				{
@@ -182,6 +182,10 @@ namespace RevitShutteringAddin
 							}
 							if (faceNormal.Z < -0.5)
 							{
+								if (!shutteringSettings.ModelPlywood)
+								{
+									continue;
+								}
 								Solid solid = CreateShutteringSolid(planarFace, thicknessFeet);
 								if (solid == null)
 								{
@@ -193,7 +197,8 @@ namespace RevitShutteringAddin
 								{
 									double value = solid.Volume * 1.4158428;
 									string text = $"Slab Under Shuttering - {arg} | Area: {Math.Round(value, 2)} m²";
-									ElementId elementId = CreateDirectShape(document, solid, "Slab Under Shuttering", text, orCreateMaterial);
+									BuiltInCategory cat = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_Floors : BuiltInCategory.OST_GenericModel;
+									ElementId elementId = CreateDirectShape(document, solid, "Slab Under Shuttering", text, orCreateMaterial, cat);
 									if (elementId != ElementId.InvalidElementId)
 									{
 										list.Add(new ShutterRecord
@@ -201,6 +206,7 @@ namespace RevitShutteringAddin
 											HostElementId = slab.Id.ToString(),
 											HostCategory = slab.Category.Name,
 											ShutterElementId = elementId.ToString(),
+											ComponentType = "Plywood (Touching Concrete)",
 											ShutterMarkValue = text,
 											ShutterArea = Math.Round(value, 2),
 											ElementWidth = Math.Round(a3),
@@ -218,6 +224,10 @@ namespace RevitShutteringAddin
 								{
 									continue;
 								}
+								if (!shutteringSettings.ModelPlywood)
+								{
+									continue;
+								}
 								Solid solid2 = CreateShutteringSolid(planarFace, thicknessFeet);
 								if (solid2 == null)
 								{
@@ -231,7 +241,8 @@ namespace RevitShutteringAddin
 								{
 									double value2 = solid2.Volume * 1.4158428;
 									string text2 = $"Slab Side Shuttering - {arg} | Area: {Math.Round(value2, 2)} m²";
-									ElementId elementId2 = CreateDirectShape(document, solid2, "Slab Side Shuttering", text2, orCreateMaterial);
+									BuiltInCategory cat2 = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_Floors : BuiltInCategory.OST_GenericModel;
+									ElementId elementId2 = CreateDirectShape(document, solid2, "Slab Side Shuttering", text2, orCreateMaterial, cat2);
 									if (elementId2 != ElementId.InvalidElementId)
 									{
 										list.Add(new ShutterRecord
@@ -239,6 +250,7 @@ namespace RevitShutteringAddin
 											HostElementId = slab.Id.ToString(),
 											HostCategory = slab.Category.Name,
 											ShutterElementId = elementId2.ToString(),
+											ComponentType = "Plywood (Touching Concrete)",
 											ShutterMarkValue = text2,
 											ShutterArea = Math.Round(value2, 2),
 											ElementWidth = Math.Round(a3),
@@ -287,6 +299,10 @@ namespace RevitShutteringAddin
 							}
 							if (faceNormal2.Z < -0.5)
 							{
+								if (!shutteringSettings.ModelPlywood)
+								{
+									continue;
+								}
 								Solid solid3 = CreateShutteringSolid(planarFace2, thicknessFeet);
 								if (solid3 == null)
 								{
@@ -298,7 +314,8 @@ namespace RevitShutteringAddin
 								{
 									double value3 = solid3.Volume * 1.4158428;
 									string text3 = $"Beam Bottom Shuttering - {beamSizeString} | Area: {Math.Round(value3, 2)} m²";
-									ElementId elementId3 = CreateDirectShape(document, solid3, "Beam Bottom Shuttering", text3, orCreateMaterial);
+									BuiltInCategory cat3 = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+									ElementId elementId3 = CreateDirectShape(document, solid3, "Beam Bottom Shuttering", text3, orCreateMaterial, cat3);
 									if (elementId3 != ElementId.InvalidElementId)
 									{
 										list.Add(new ShutterRecord
@@ -306,6 +323,7 @@ namespace RevitShutteringAddin
 											HostElementId = item8.Id.ToString(),
 											HostCategory = item8.Category.Name,
 											ShutterElementId = elementId3.ToString(),
+											ComponentType = "Plywood (Touching Concrete)",
 											ShutterMarkValue = text3,
 											ShutterArea = Math.Round(value3, 2),
 											ElementWidth = Math.Round(width),
@@ -323,6 +341,10 @@ namespace RevitShutteringAddin
 								{
 									continue;
 								}
+								if (!shutteringSettings.ModelPlywood)
+								{
+									continue;
+								}
 								Solid solid4 = CreateShutteringSolid(planarFace2, thicknessFeet);
 								if (solid4 == null)
 								{
@@ -335,7 +357,8 @@ namespace RevitShutteringAddin
 								{
 									double value4 = solid4.Volume * 1.4158428;
 									string text4 = $"Beam Side Shuttering - {beamSizeString} | Area: {Math.Round(value4, 2)} m²";
-									ElementId elementId4 = CreateDirectShape(document, solid4, "Beam Side Shuttering", text4, orCreateMaterial);
+									BuiltInCategory cat4 = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+									ElementId elementId4 = CreateDirectShape(document, solid4, "Beam Side Shuttering", text4, orCreateMaterial, cat4);
 									if (elementId4 != ElementId.InvalidElementId)
 									{
 										list.Add(new ShutterRecord
@@ -343,6 +366,7 @@ namespace RevitShutteringAddin
 											HostElementId = item8.Id.ToString(),
 											HostCategory = item8.Category.Name,
 											ShutterElementId = elementId4.ToString(),
+											ComponentType = "Plywood (Touching Concrete)",
 											ShutterMarkValue = text4,
 											ShutterArea = Math.Round(value4, 2),
 											ElementWidth = Math.Round(width),
@@ -386,6 +410,10 @@ namespace RevitShutteringAddin
 							{
 								continue;
 							}
+							if (!shutteringSettings.ModelPlywood)
+							{
+								continue;
+							}
 							Solid solid5 = CreateShutteringSolid(planarFace3, thicknessFeet);
 							if (solid5 == null)
 							{
@@ -398,7 +426,8 @@ namespace RevitShutteringAddin
 							{
 								double value5 = solid5.Volume * 1.4158428;
 								string text5 = $"Column Shuttering - {columnSizeString} | Area: {Math.Round(value5, 2)} m²";
-								ElementId elementId5 = CreateDirectShape(document, solid5, "Column Shuttering", text5, orCreateMaterial);
+								BuiltInCategory cat5 = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_Columns : BuiltInCategory.OST_GenericModel;
+								ElementId elementId5 = CreateDirectShape(document, solid5, "Column Shuttering", text5, orCreateMaterial, cat5);
 								if (elementId5 != ElementId.InvalidElementId)
 								{
 									list.Add(new ShutterRecord
@@ -406,6 +435,7 @@ namespace RevitShutteringAddin
 										HostElementId = item10.Id.ToString(),
 										HostCategory = item10.Category.Name,
 										ShutterElementId = elementId5.ToString(),
+										ComponentType = "Plywood (Touching Concrete)",
 										ShutterMarkValue = text5,
 										ShutterArea = Math.Round(value5, 2),
 										ElementWidth = Math.Round(width2),
@@ -452,6 +482,10 @@ namespace RevitShutteringAddin
 							{
 								continue;
 							}
+							if (!shutteringSettings.ModelPlywood)
+							{
+								continue;
+							}
 							Solid solid6 = CreateShutteringSolid(planarFace4, thicknessFeet);
 							if (solid6 == null)
 							{
@@ -466,7 +500,8 @@ namespace RevitShutteringAddin
 							{
 								double value6 = solid6.Volume * 1.4158428;
 								string text6 = $"Wall Shuttering - {arg2} | Area: {Math.Round(value6, 2)} m²";
-								ElementId elementId6 = CreateDirectShape(document, solid6, "Wall Shuttering", text6, orCreateMaterial);
+								BuiltInCategory cat6 = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_Walls : BuiltInCategory.OST_GenericModel;
+								ElementId elementId6 = CreateDirectShape(document, solid6, "Wall Shuttering", text6, orCreateMaterial, cat6);
 								if (elementId6 != ElementId.InvalidElementId)
 								{
 									list.Add(new ShutterRecord
@@ -474,6 +509,7 @@ namespace RevitShutteringAddin
 										HostElementId = wall.Id.ToString(),
 										HostCategory = wall.Category.Name,
 										ShutterElementId = elementId6.ToString(),
+										ComponentType = "Plywood (Touching Concrete)",
 										ShutterMarkValue = text6,
 										ShutterArea = Math.Round(value6, 2),
 										ElementWidth = 0.0,
@@ -647,11 +683,11 @@ namespace RevitShutteringAddin
 			return solid;
 		}
 
-		private static ElementId CreateDirectShape(Document doc, Solid solid, string name, string comment, Material material)
+		private static ElementId CreateDirectShape(Document doc, Solid solid, string name, string comment, Material material, BuiltInCategory builtInCat = BuiltInCategory.OST_GenericModel)
 		{
 			try
 			{
-				DirectShape directShape = DirectShape.CreateElement(doc, new ElementId(BuiltInCategory.OST_GenericModel));
+				DirectShape directShape = DirectShape.CreateElement(doc, new ElementId(builtInCat));
 				directShape.Name = name;
 				directShape.SetShape(new List<GeometryObject> { solid });
 				double value = solid.Volume * 1.4158428;
@@ -660,6 +696,11 @@ namespace RevitShutteringAddin
 				if (parameter != null && !parameter.IsReadOnly)
 				{
 					parameter.Set(value2);
+				}
+				Parameter markParam = ((Element)directShape).get_Parameter(BuiltInParameter.ALL_MODEL_MARK);
+				if (markParam != null && !markParam.IsReadOnly)
+				{
+					markParam.Set(name);
 				}
 				if (material != null)
 				{
@@ -909,78 +950,92 @@ namespace RevitShutteringAddin
 				double num5 = z - num4;
 				double num6 = num5 - num3;
 				double num7 = settings.PrimaryJoistSpacingMm / 304.8;
-				for (double num8 = y + num7 / 2.0; num8 <= y2 - num2 / 2.0; num8 += num7)
+				if (settings.ModelPrimaryJoists)
 				{
-					XYZ minPt = new XYZ(x, num8 - num2 / 2.0, num6);
-					XYZ maxPt = new XYZ(x2, num8 + num2 / 2.0, num5);
-					Solid solid = CreateBoxSolid(minPt, maxPt);
-					if (solid == null)
+					for (double num8 = y + num7 / 2.0; num8 <= y2 - num2 / 2.0; num8 += num7)
 					{
-						continue;
-					}
-					if (list.Count > 0)
-					{
-						solid = SubtractSolids(solid, list);
-					}
-					if (solid != null && solid.Volume > 1E-05)
-					{
-						double a = (x2 - x) * 304.8;
-						ElementId elementId = CreateDirectShape(doc, solid, "Slab Primary Joist", $"Slab Primary H20 Joist - {Math.Round(a)}mm", timberMat);
-						if (elementId != ElementId.InvalidElementId)
+						XYZ minPt = new XYZ(x, num8 - num2 / 2.0, num6);
+						XYZ maxPt = new XYZ(x2, num8 + num2 / 2.0, num5);
+						Solid solid = CreateBoxSolid(minPt, maxPt);
+						if (solid == null)
 						{
-							records.Add(new ShutterRecord
+							continue;
+						}
+						if (list.Count > 0)
+						{
+							solid = SubtractSolids(solid, list);
+						}
+						if (solid != null && solid.Volume > 1E-05)
+						{
+							double a = (x2 - x) * 304.8;
+							BuiltInCategory jCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+							ElementId elementId = CreateDirectShape(doc, solid, "Slab Primary Joist", $"Slab Primary H20 Joist - {Math.Round(a)}mm", timberMat, jCat);
+							if (elementId != ElementId.InvalidElementId)
 							{
-								HostElementId = slab.Id.ToString(),
-								HostCategory = slab.Category.Name,
-								ShutterElementId = elementId.ToString(),
-								ShutterMarkValue = $"Slab Primary H20 Joist - L={Math.Round(a)}mm",
-								ShutterArea = 0.0,
-								ElementWidth = 80.0,
-								ElementHeight = 200.0,
-								ElementLength = Math.Round(a),
-								ElementThickness = 0.0
-							});
-							num++;
+								records.Add(new ShutterRecord
+								{
+									HostElementId = slab.Id.ToString(),
+									HostCategory = slab.Category.Name,
+									ShutterElementId = elementId.ToString(),
+									ComponentType = "Primary Joist",
+									ShutterMarkValue = $"Slab Primary H20 Joist - L={Math.Round(a)}mm",
+									ShutterArea = 0.0,
+									ElementWidth = 80.0,
+									ElementHeight = 200.0,
+									ElementLength = Math.Round(a),
+									ElementThickness = 0.0
+								});
+								num++;
+							}
 						}
 					}
 				}
 				double num9 = num6;
 				double num10 = num9 - num3;
 				double num11 = settings.SecondaryJoistSpacingMm / 304.8;
-				for (double num12 = x + num11 / 2.0; num12 <= x2 - num2 / 2.0; num12 += num11)
+				if (settings.ModelSecondaryJoists)
 				{
-					XYZ minPt2 = new XYZ(num12 - num2 / 2.0, y, num10);
-					XYZ maxPt2 = new XYZ(num12 + num2 / 2.0, y2, num9);
-					Solid solid2 = CreateBoxSolid(minPt2, maxPt2);
-					if (solid2 == null)
+					for (double num12 = x + num11 / 2.0; num12 <= x2 - num2 / 2.0; num12 += num11)
 					{
-						continue;
-					}
-					if (list.Count > 0)
-					{
-						solid2 = SubtractSolids(solid2, list);
-					}
-					if (solid2 != null && solid2.Volume > 1E-05)
-					{
-						double a2 = (y2 - y) * 304.8;
-						ElementId elementId2 = CreateDirectShape(doc, solid2, "Slab Secondary Joist", $"Slab Secondary H20 Joist - {Math.Round(a2)}mm", timberMat);
-						if (elementId2 != ElementId.InvalidElementId)
+						XYZ minPt2 = new XYZ(num12 - num2 / 2.0, y, num10);
+						XYZ maxPt2 = new XYZ(num12 + num2 / 2.0, y2, num9);
+						Solid solid2 = CreateBoxSolid(minPt2, maxPt2);
+						if (solid2 == null)
 						{
-							records.Add(new ShutterRecord
+							continue;
+						}
+						if (list.Count > 0)
+						{
+							solid2 = SubtractSolids(solid2, list);
+						}
+						if (solid2 != null && solid2.Volume > 1E-05)
+						{
+							double a2 = (y2 - y) * 304.8;
+							BuiltInCategory jCat2 = settings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+							ElementId elementId2 = CreateDirectShape(doc, solid2, "Slab Secondary Joist", $"Slab Secondary H20 Joist - {Math.Round(a2)}mm", timberMat, jCat2);
+							if (elementId2 != ElementId.InvalidElementId)
 							{
-								HostElementId = slab.Id.ToString(),
-								HostCategory = slab.Category.Name,
-								ShutterElementId = elementId2.ToString(),
-								ShutterMarkValue = $"Slab Secondary H20 Joist - L={Math.Round(a2)}mm",
-								ShutterArea = 0.0,
-								ElementWidth = 80.0,
-								ElementHeight = 200.0,
-								ElementLength = Math.Round(a2),
-								ElementThickness = 0.0
-							});
-							num++;
+								records.Add(new ShutterRecord
+								{
+									HostElementId = slab.Id.ToString(),
+									HostCategory = slab.Category.Name,
+									ShutterElementId = elementId2.ToString(),
+									ComponentType = "Secondary Joist",
+									ShutterMarkValue = $"Slab Secondary H20 Joist - L={Math.Round(a2)}mm",
+									ShutterArea = 0.0,
+									ElementWidth = 80.0,
+									ElementHeight = 200.0,
+									ElementLength = Math.Round(a2),
+									ElementThickness = 0.0
+								});
+								num++;
+							}
 						}
 					}
+				}
+				if (!settings.ModelProps)
+				{
+					continue;
 				}
 				if (settings.SkipGroundSlabProps && z <= globalMinSlabZ + 1.5)
 				{
@@ -1013,7 +1068,8 @@ namespace RevitShutteringAddin
 						if (solid3 != null && solid3.Volume > 1E-05)
 						{
 							double a3 = (num13 - num18) * 304.8;
-							ElementId elementId3 = CreateDirectShape(doc, solid3, "Slab Scaffold Prop", $"Slab Scaffolding Prop - H: {Math.Round(a3)}mm", propMat);
+							BuiltInCategory pCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+							ElementId elementId3 = CreateDirectShape(doc, solid3, "Slab Scaffold Prop", $"Slab Scaffolding Prop - H: {Math.Round(a3)}mm", propMat, pCat);
 							if (elementId3 != ElementId.InvalidElementId)
 							{
 								records.Add(new ShutterRecord
@@ -1021,6 +1077,7 @@ namespace RevitShutteringAddin
 									HostElementId = slab.Id.ToString(),
 									HostCategory = slab.Category.Name,
 									ShutterElementId = elementId3.ToString(),
+									ComponentType = "Scaffolding Prop",
 									ShutterMarkValue = $"Slab Scaffolding Prop - H: {Math.Round(a3)}mm",
 									ShutterArea = 0.0,
 									ElementWidth = 80.0,
@@ -1117,25 +1174,30 @@ namespace RevitShutteringAddin
 						xYZ3 = new XYZ(xYZ3.X, xYZ3.Y, num14) + faceNormal * (num2 + num3 / 2.0);
 						XYZ xYZ4 = xYZ2 + num8 * xYZ;
 						xYZ4 = new XYZ(xYZ4.X, xYZ4.Y, num14) + faceNormal * (num2 + num3 / 2.0);
-						Solid solid = CreateBeamSolidBetweenPoints(xYZ3, xYZ4, num3, num4);
-						if (solid != null && solid.Volume > 1E-05)
+						if (settings.ModelWalers)
 						{
-							ElementId elementId = CreateDirectShape(doc, solid, "Wall Waler", "Wall Steel Waler - 100x100mm", steelWalerMat);
-							if (elementId != ElementId.InvalidElementId)
+							Solid solid = CreateBeamSolidBetweenPoints(xYZ3, xYZ4, num3, num4);
+							if (solid != null && solid.Volume > 1E-05)
 							{
-								records.Add(new ShutterRecord
+								BuiltInCategory wCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+								ElementId elementId = CreateDirectShape(doc, solid, "Wall Waler", "Wall Steel Waler - 100x100mm", steelWalerMat, wCat);
+								if (elementId != ElementId.InvalidElementId)
 								{
-									HostElementId = wall.Id.ToString(),
-									HostCategory = wall.Category.Name,
-									ShutterElementId = elementId.ToString(),
-									ShutterMarkValue = "Wall Steel Waler - 100x100mm",
-									ShutterArea = 0.0,
-									ElementWidth = 100.0,
-									ElementHeight = 100.0,
-									ElementLength = Math.Round(num12 * 304.8),
-									ElementThickness = 0.0
-								});
-								num++;
+									records.Add(new ShutterRecord
+									{
+										HostElementId = wall.Id.ToString(),
+										HostCategory = wall.Category.Name,
+										ShutterElementId = elementId.ToString(),
+										ComponentType = "Waler",
+										ShutterMarkValue = "Wall Steel Waler - 100x100mm",
+										ShutterArea = 0.0,
+										ElementWidth = 100.0,
+										ElementHeight = 100.0,
+										ElementLength = Math.Round(num12 * 304.8),
+										ElementThickness = 0.0
+									});
+									num++;
+								}
 							}
 						}
 						if (!settings.GenerateTieRods)
@@ -1200,62 +1262,69 @@ namespace RevitShutteringAddin
 					double num24 = num17 * 0.55;
 					int num25 = Math.Max(1, (int)Math.Floor(num12 / num19));
 					double num26 = num12 / (double)num25;
-					for (int i = 0; i < num25; i++)
+					if (settings.ModelProps)
 					{
-						double num27 = num7 + ((double)i + 0.5) * num26;
-						XYZ xYZ10 = xYZ2 + num27 * xYZ;
-						XYZ xYZ11 = new XYZ(xYZ10.X, xYZ10.Y, z) + faceNormal * (num2 + num3);
-						XYZ xYZ12 = new XYZ(xYZ10.X, xYZ10.Y, num9) + faceNormal * (num2 + num3 + num24);
-						Solid solid4 = CreateSlantedCylinderSolid(xYZ12, xYZ11, num18);
-						if (solid4 != null && solid4.Volume > 1E-05)
+						for (int i = 0; i < num25; i++)
 						{
-							double a = xYZ12.DistanceTo(xYZ11) * 304.8;
-							ElementId elementId4 = CreateDirectShape(doc, solid4, "Wall Push-Pull Prop", $"Wall Push-Pull Diagonal Prop - L={Math.Round(a)}mm", propMat);
-							if (elementId4 != ElementId.InvalidElementId)
+							double num27 = num7 + ((double)i + 0.5) * num26;
+							XYZ xYZ10 = xYZ2 + num27 * xYZ;
+							XYZ xYZ11 = new XYZ(xYZ10.X, xYZ10.Y, z) + faceNormal * (num2 + num3);
+							XYZ xYZ12 = new XYZ(xYZ10.X, xYZ10.Y, num9) + faceNormal * (num2 + num3 + num24);
+							Solid solid4 = CreateSlantedCylinderSolid(xYZ12, xYZ11, num18);
+							if (solid4 != null && solid4.Volume > 1E-05)
 							{
-								records.Add(new ShutterRecord
+								double a = xYZ12.DistanceTo(xYZ11) * 304.8;
+								BuiltInCategory prCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+								ElementId elementId4 = CreateDirectShape(doc, solid4, "Wall Push-Pull Prop", $"Wall Push-Pull Diagonal Prop - L={Math.Round(a)}mm", propMat, prCat);
+								if (elementId4 != ElementId.InvalidElementId)
 								{
-									HostElementId = wall.Id.ToString(),
-									HostCategory = wall.Category.Name,
-									ShutterElementId = elementId4.ToString(),
-									ShutterMarkValue = $"Wall Push-Pull Diagonal Prop - L={Math.Round(a)}mm",
-									ShutterArea = 0.0,
-									ElementWidth = 80.0,
-									ElementHeight = Math.Round(a),
-									ElementLength = 0.0,
-									ElementThickness = 0.0
-								});
-								num++;
+									records.Add(new ShutterRecord
+									{
+										HostElementId = wall.Id.ToString(),
+										HostCategory = wall.Category.Name,
+										ShutterElementId = elementId4.ToString(),
+										ComponentType = "Push-Pull Prop",
+										ShutterMarkValue = $"Wall Push-Pull Diagonal Prop - L={Math.Round(a)}mm",
+										ShutterArea = 0.0,
+										ElementWidth = 80.0,
+										ElementHeight = Math.Round(a),
+										ElementLength = 0.0,
+										ElementThickness = 0.0
+									});
+									num++;
+								}
 							}
-						}
-						XYZ xYZ13 = xYZ12;
-						XYZ xYZ14 = new XYZ(xYZ13.X - num20 / 2.0, xYZ13.Y - num21 / 2.0, num9);
-						XYZ xYZ15 = new XYZ(xYZ13.X + num20 / 2.0, xYZ13.Y + num21 / 2.0, num9 + num22);
-						XYZ xYZ16 = (xYZ14 + xYZ15) * 0.5;
-						XYZ xYZ17 = xYZ * (num20 / 2.0);
-						XYZ xYZ18 = faceNormal * (num21 / 2.0);
-						XYZ xYZ19 = XYZ.BasisZ * (num22 / 2.0);
-						XYZ minPt2 = xYZ16 - xYZ17 - xYZ18 - xYZ19;
-						XYZ maxPt2 = xYZ16 + xYZ17 + xYZ18 + xYZ19;
-						Solid solid5 = CreateBoxSolid(minPt2, maxPt2);
-						if (solid5 != null && solid5.Volume > 1E-05)
-						{
-							ElementId elementId5 = CreateDirectShape(doc, solid5, "Wall Push-Pull Prop", "Prop Base Kicker Plate 200x200x15mm", steelWalerMat);
-							if (elementId5 != ElementId.InvalidElementId)
+							XYZ xYZ13 = xYZ12;
+							XYZ xYZ14 = new XYZ(xYZ13.X - num20 / 2.0, xYZ13.Y - num21 / 2.0, num9);
+							XYZ xYZ15 = new XYZ(xYZ13.X + num20 / 2.0, xYZ13.Y + num21 / 2.0, num9 + num22);
+							XYZ xYZ16 = (xYZ14 + xYZ15) * 0.5;
+							XYZ xYZ17 = xYZ * (num20 / 2.0);
+							XYZ xYZ18 = faceNormal * (num21 / 2.0);
+							XYZ xYZ19 = XYZ.BasisZ * (num22 / 2.0);
+							XYZ minPt2 = xYZ16 - xYZ17 - xYZ18 - xYZ19;
+							XYZ maxPt2 = xYZ16 + xYZ17 + xYZ18 + xYZ19;
+							Solid solid5 = CreateBoxSolid(minPt2, maxPt2);
+							if (solid5 != null && solid5.Volume > 1E-05)
 							{
-								num++;
+								BuiltInCategory prCat2 = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+								ElementId elementId5 = CreateDirectShape(doc, solid5, "Wall Push-Pull Prop", "Prop Base Kicker Plate 200x200x15mm", steelWalerMat, prCat2);
+								if (elementId5 != ElementId.InvalidElementId)
+								{
+									num++;
+								}
 							}
-						}
-						double num28 = 100.0 / 381.0;
-						XYZ startPt = new XYZ(xYZ12.X, xYZ12.Y, num9 + num22);
-						XYZ endPt = new XYZ(xYZ12.X, xYZ12.Y, num9 + num22 + num28);
-						Solid solid6 = CreateSlantedCylinderSolid(startPt, endPt, num18 * 0.6);
-						if (solid6 != null && solid6.Volume > 1E-05)
-						{
-							ElementId elementId6 = CreateDirectShape(doc, solid6, "Wall Push-Pull Prop", "Prop Base Foot Connector", propMat);
-							if (elementId6 != ElementId.InvalidElementId)
+							double num28 = 100.0 / 381.0;
+							XYZ startPt = new XYZ(xYZ12.X, xYZ12.Y, num9 + num22);
+							XYZ endPt = new XYZ(xYZ12.X, xYZ12.Y, num9 + num22 + num28);
+							Solid solid6 = CreateSlantedCylinderSolid(startPt, endPt, num18 * 0.6);
+							if (solid6 != null && solid6.Volume > 1E-05)
 							{
-								num++;
+								BuiltInCategory prCat3 = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+								ElementId elementId6 = CreateDirectShape(doc, solid6, "Wall Push-Pull Prop", "Prop Base Foot Connector", propMat, prCat3);
+								if (elementId6 != ElementId.InvalidElementId)
+								{
+									num++;
+								}
 							}
 						}
 					}
@@ -1286,59 +1355,69 @@ namespace RevitShutteringAddin
 				double num5 = settings.WalerVerticalSpacingMm / 304.8;
 				for (double num6 = z + num5 / 2.0; num6 <= z2 - num4; num6 += num5)
 				{
-					XYZ minPt = new XYZ(solidBoundingBox.Min.X - num2 - num3, solidBoundingBox.Min.Y - num2 - num3, num6);
-					XYZ maxPt = new XYZ(solidBoundingBox.Max.X + num2 + num3, solidBoundingBox.Max.Y + num2 + num3, num6 + num4);
-					Solid solid = CreateBoxSolid(minPt, maxPt);
-					XYZ minPt2 = new XYZ(solidBoundingBox.Min.X - num2, solidBoundingBox.Min.Y - num2, num6 - 0.1);
-					XYZ maxPt2 = new XYZ(solidBoundingBox.Max.X + num2, solidBoundingBox.Max.Y + num2, num6 + num4 + 0.1);
-					Solid solid2 = CreateBoxSolid(minPt2, maxPt2);
-					if (solid != null && solid2 != null)
+					if (settings.ModelWalers)
 					{
-						solid = SubtractSolids(solid, new List<Solid> { solid2 });
+						XYZ minPt = new XYZ(solidBoundingBox.Min.X - num2 - num3, solidBoundingBox.Min.Y - num2 - num3, num6);
+						XYZ maxPt = new XYZ(solidBoundingBox.Max.X + num2 + num3, solidBoundingBox.Max.Y + num2 + num3, num6 + num4);
+						Solid solid = CreateBoxSolid(minPt, maxPt);
+						XYZ minPt2 = new XYZ(solidBoundingBox.Min.X - num2, solidBoundingBox.Min.Y - num2, num6 - 0.1);
+						XYZ maxPt2 = new XYZ(solidBoundingBox.Max.X + num2, solidBoundingBox.Max.Y + num2, num6 + num4 + 0.1);
+						Solid solid2 = CreateBoxSolid(minPt2, maxPt2);
+						if (solid != null && solid2 != null)
+						{
+							solid = SubtractSolids(solid, new List<Solid> { solid2 });
+						}
+						if (solid != null && solid.Volume > 1E-05)
+						{
+							BuiltInCategory cCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+							ElementId elementId = CreateDirectShape(doc, solid, "Column Waler", "Column Clamping Waler Frame", steelWalerMat, cCat);
+							if (elementId != ElementId.InvalidElementId)
+							{
+								records.Add(new ShutterRecord
+								{
+									HostElementId = col.Id.ToString(),
+									HostCategory = col.Category.Name,
+									ShutterElementId = elementId.ToString(),
+									ComponentType = "Waler",
+									ShutterMarkValue = "Column Clamping Waler Frame",
+									ShutterArea = 0.0,
+									ElementWidth = 80.0,
+									ElementHeight = 80.0,
+									ElementLength = 0.0,
+									ElementThickness = 0.0
+								});
+								num++;
+							}
+						}
 					}
-					if (solid != null && solid.Volume > 1E-05)
+				}
+				if (settings.ModelProps)
+				{
+					XYZ xYZ = new XYZ(solidBoundingBox.Max.X + num2 + num3, (solidBoundingBox.Min.Y + solidBoundingBox.Max.Y) / 2.0, z + (z2 - z) * 0.7);
+					XYZ xYZ2 = xYZ + new XYZ((z2 - z) * 0.5, 0.0, (0.0 - (z2 - z)) * 0.7);
+					Solid solid3 = CreateSlantedCylinderSolid(xYZ2, xYZ, 50.0 / 381.0);
+					if (solid3 != null && solid3.Volume > 1E-05)
 					{
-						ElementId elementId = CreateDirectShape(doc, solid, "Column Waler", "Column Clamping Waler Frame", steelWalerMat);
-						if (elementId != ElementId.InvalidElementId)
+						double a = xYZ2.DistanceTo(xYZ) * 304.8;
+						BuiltInCategory cpCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+						ElementId elementId2 = CreateDirectShape(doc, solid3, "Column Support Prop", $"Column Push-Pull Prop - L={Math.Round(a)}mm", propMat, cpCat);
+						if (elementId2 != ElementId.InvalidElementId)
 						{
 							records.Add(new ShutterRecord
 							{
 								HostElementId = col.Id.ToString(),
 								HostCategory = col.Category.Name,
-								ShutterElementId = elementId.ToString(),
-								ShutterMarkValue = "Column Clamping Waler Frame",
+								ShutterElementId = elementId2.ToString(),
+								ComponentType = "Push-Pull Prop",
+								ShutterMarkValue = $"Column Push-Pull Prop - L={Math.Round(a)}mm",
 								ShutterArea = 0.0,
 								ElementWidth = 80.0,
-								ElementHeight = 80.0,
+								ElementHeight = Math.Round(a),
 								ElementLength = 0.0,
 								ElementThickness = 0.0
 							});
 							num++;
 						}
-					}
-				}
-				XYZ xYZ = new XYZ(solidBoundingBox.Max.X + num2 + num3, (solidBoundingBox.Min.Y + solidBoundingBox.Max.Y) / 2.0, z + (z2 - z) * 0.7);
-				XYZ xYZ2 = xYZ + new XYZ((z2 - z) * 0.5, 0.0, (0.0 - (z2 - z)) * 0.7);
-				Solid solid3 = CreateSlantedCylinderSolid(xYZ2, xYZ, 50.0 / 381.0);
-				if (solid3 != null && solid3.Volume > 1E-05)
-				{
-					double a = xYZ2.DistanceTo(xYZ) * 304.8;
-					ElementId elementId2 = CreateDirectShape(doc, solid3, "Column Support Prop", $"Column Push-Pull Prop - L={Math.Round(a)}mm", propMat);
-					if (elementId2 != ElementId.InvalidElementId)
-					{
-						records.Add(new ShutterRecord
-						{
-							HostElementId = col.Id.ToString(),
-							HostCategory = col.Category.Name,
-							ShutterElementId = elementId2.ToString(),
-							ShutterMarkValue = $"Column Push-Pull Prop - L={Math.Round(a)}mm",
-							ShutterArea = 0.0,
-							ElementWidth = 80.0,
-							ElementHeight = Math.Round(a),
-							ElementLength = 0.0,
-							ElementThickness = 0.0
-						});
-						num++;
 					}
 				}
 			}
@@ -1377,32 +1456,41 @@ namespace RevitShutteringAddin
 				{
 					for (double num8 = x + num5 / 2.0; num8 <= x2 - num3 / 2.0; num8 += num5)
 					{
-						XYZ minPt = new XYZ(num8 - num3 / 2.0, y - 125.0 / 381.0, num7);
-						XYZ maxPt = new XYZ(num8 + num3 / 2.0, y2 + 125.0 / 381.0, num6);
-						Solid solid = CreateBoxSolid(minPt, maxPt);
-						if (solid != null && list.Count > 0)
+						if (settings.ModelWalers)
 						{
-							solid = SubtractSolids(solid, list);
-						}
-						if (solid != null && solid.Volume > 1E-05)
-						{
-							ElementId elementId = CreateDirectShape(doc, solid, "Beam Bottom Support", "Beam Bottom Transverse Support Waler", steelWalerMat);
-							if (elementId != ElementId.InvalidElementId)
+							XYZ minPt = new XYZ(num8 - num3 / 2.0, y - 125.0 / 381.0, num7);
+							XYZ maxPt = new XYZ(num8 + num3 / 2.0, y2 + 125.0 / 381.0, num6);
+							Solid solid = CreateBoxSolid(minPt, maxPt);
+							if (solid != null && list.Count > 0)
 							{
-								records.Add(new ShutterRecord
-								{
-									HostElementId = beam.Id.ToString(),
-									HostCategory = beam.Category.Name,
-									ShutterElementId = elementId.ToString(),
-									ShutterMarkValue = "Beam Bottom Transverse Support Waler",
-									ShutterArea = 0.0,
-									ElementWidth = 80.0,
-									ElementHeight = 100.0,
-									ElementLength = Math.Round((y2 - y) * 304.8 + 200.0),
-									ElementThickness = 0.0
-								});
-								num++;
+								solid = SubtractSolids(solid, list);
 							}
+							if (solid != null && solid.Volume > 1E-05)
+							{
+								BuiltInCategory bwCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+								ElementId elementId = CreateDirectShape(doc, solid, "Beam Bottom Support", "Beam Bottom Transverse Support Waler", steelWalerMat, bwCat);
+								if (elementId != ElementId.InvalidElementId)
+								{
+									records.Add(new ShutterRecord
+									{
+										HostElementId = beam.Id.ToString(),
+										HostCategory = beam.Category.Name,
+										ShutterElementId = elementId.ToString(),
+										ComponentType = "Waler",
+										ShutterMarkValue = "Beam Bottom Transverse Support Waler",
+										ShutterArea = 0.0,
+										ElementWidth = 80.0,
+										ElementHeight = 100.0,
+										ElementLength = Math.Round((y2 - y) * 304.8 + 200.0),
+										ElementThickness = 0.0
+									});
+									num++;
+								}
+							}
+						}
+						if (!settings.ModelProps)
+						{
+							continue;
 						}
 						if (settings.SkipGroundSlabProps && z <= globalMinSlabZ + 1.5)
 						{
@@ -1430,7 +1518,8 @@ namespace RevitShutteringAddin
 						if (solid2 != null && solid2.Volume > 1E-05)
 						{
 							double a = (num11 - num12) * 304.8;
-							ElementId elementId2 = CreateDirectShape(doc, solid2, "Beam Support Prop", $"Beam Shoring Prop - H: {Math.Round(a)}mm", propMat);
+							BuiltInCategory bpCat = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+							ElementId elementId2 = CreateDirectShape(doc, solid2, "Beam Support Prop", $"Beam Shoring Prop - H: {Math.Round(a)}mm", propMat, bpCat);
 							if (elementId2 != ElementId.InvalidElementId)
 							{
 								records.Add(new ShutterRecord
@@ -1438,6 +1527,7 @@ namespace RevitShutteringAddin
 									HostElementId = beam.Id.ToString(),
 									HostCategory = beam.Category.Name,
 									ShutterElementId = elementId2.ToString(),
+									ComponentType = "Scaffolding Prop",
 									ShutterMarkValue = $"Beam Shoring Prop - H: {Math.Round(a)}mm",
 									ShutterArea = 0.0,
 									ElementWidth = 80.0,
@@ -1453,32 +1543,41 @@ namespace RevitShutteringAddin
 				}
 				for (double num13 = y + num5 / 2.0; num13 <= y2 - num3 / 2.0; num13 += num5)
 				{
-					XYZ minPt2 = new XYZ(x - 125.0 / 381.0, num13 - num3 / 2.0, num7);
-					XYZ maxPt2 = new XYZ(x2 + 125.0 / 381.0, num13 + num3 / 2.0, num6);
-					Solid solid3 = CreateBoxSolid(minPt2, maxPt2);
-					if (solid3 != null && list.Count > 0)
+					if (settings.ModelWalers)
 					{
-						solid3 = SubtractSolids(solid3, list);
-					}
-					if (solid3 != null && solid3.Volume > 1E-05)
-					{
-						ElementId elementId3 = CreateDirectShape(doc, solid3, "Beam Bottom Support", "Beam Bottom Transverse Support Waler", steelWalerMat);
-						if (elementId3 != ElementId.InvalidElementId)
+						XYZ minPt2 = new XYZ(x - 125.0 / 381.0, num13 - num3 / 2.0, num7);
+						XYZ maxPt2 = new XYZ(x2 + 125.0 / 381.0, num13 + num3 / 2.0, num6);
+						Solid solid3 = CreateBoxSolid(minPt2, maxPt2);
+						if (solid3 != null && list.Count > 0)
 						{
-							records.Add(new ShutterRecord
-							{
-								HostElementId = beam.Id.ToString(),
-								HostCategory = beam.Category.Name,
-								ShutterElementId = elementId3.ToString(),
-								ShutterMarkValue = "Beam Bottom Transverse Support Waler",
-								ShutterArea = 0.0,
-								ElementWidth = 80.0,
-								ElementHeight = 100.0,
-								ElementLength = Math.Round((x2 - x) * 304.8 + 200.0),
-								ElementThickness = 0.0
-							});
-							num++;
+							solid3 = SubtractSolids(solid3, list);
 						}
+						if (solid3 != null && solid3.Volume > 1E-05)
+						{
+							BuiltInCategory bwCat2 = settings.SeparateCategories ? BuiltInCategory.OST_StructuralFraming : BuiltInCategory.OST_GenericModel;
+							ElementId elementId3 = CreateDirectShape(doc, solid3, "Beam Bottom Support", "Beam Bottom Transverse Support Waler", steelWalerMat, bwCat2);
+							if (elementId3 != ElementId.InvalidElementId)
+							{
+								records.Add(new ShutterRecord
+								{
+									HostElementId = beam.Id.ToString(),
+									HostCategory = beam.Category.Name,
+									ShutterElementId = elementId3.ToString(),
+									ComponentType = "Waler",
+									ShutterMarkValue = "Beam Bottom Transverse Support Waler",
+									ShutterArea = 0.0,
+									ElementWidth = 80.0,
+									ElementHeight = 100.0,
+									ElementLength = Math.Round((x2 - x) * 304.8 + 200.0),
+									ElementThickness = 0.0
+								});
+								num++;
+							}
+						}
+					}
+					if (!settings.ModelProps)
+					{
+						continue;
 					}
 					if (settings.SkipGroundSlabProps && z <= globalMinSlabZ + 1.5)
 					{
@@ -1506,7 +1605,8 @@ namespace RevitShutteringAddin
 					if (solid4 != null && solid4.Volume > 1E-05)
 					{
 						double a2 = (num16 - num17) * 304.8;
-						ElementId elementId4 = CreateDirectShape(doc, solid4, "Beam Support Prop", $"Beam Shoring Prop - H: {Math.Round(a2)}mm", propMat);
+						BuiltInCategory bpCat2 = settings.SeparateCategories ? BuiltInCategory.OST_StructuralColumns : BuiltInCategory.OST_GenericModel;
+						ElementId elementId4 = CreateDirectShape(doc, solid4, "Beam Support Prop", $"Beam Shoring Prop - H: {Math.Round(a2)}mm", propMat, bpCat2);
 						if (elementId4 != ElementId.InvalidElementId)
 						{
 							records.Add(new ShutterRecord
@@ -1514,6 +1614,7 @@ namespace RevitShutteringAddin
 								HostElementId = beam.Id.ToString(),
 								HostCategory = beam.Category.Name,
 								ShutterElementId = elementId4.ToString(),
+								ComponentType = "Scaffolding Prop",
 								ShutterMarkValue = $"Beam Shoring Prop - H: {Math.Round(a2)}mm",
 								ShutterArea = 0.0,
 								ElementWidth = 80.0,

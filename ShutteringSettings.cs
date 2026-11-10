@@ -37,5 +37,18 @@ namespace RevitShutteringAddin
 		public string ColorPreset { get; set; } = "DOKA Official (Yellow / Blue / Steel)";
 
 		public bool AutoExportCsv { get; set; } = true;
+
+		// --- Individual component category modeling toggles ---
+		public bool ModelPlywood { get; set; } = true;
+
+		public bool ModelPrimaryJoists { get; set; } = true;
+
+		public bool ModelSecondaryJoists { get; set; } = true;
+
+		public bool ModelWalers { get; set; } = true;
+
+		public bool ModelProps { get; set; } = true;
+
+		public bool SeparateCategories { get; set; } = true;
 	}
 }

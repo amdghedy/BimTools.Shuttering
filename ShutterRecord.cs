@@ -8,6 +8,8 @@ namespace RevitShutteringAddin
 
 		public string ShutterElementId { get; set; }
 
+		public string ComponentType { get; set; }
+
 		public string ShutterMarkValue { get; set; }
 
 		public double ShutterArea { get; set; }

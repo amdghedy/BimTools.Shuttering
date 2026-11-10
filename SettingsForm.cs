@@ -46,6 +46,14 @@ namespace RevitShutteringAddin
 
 		private CheckBox chkExportCsv;
 
+		// --- Component Category Modeling Checkboxes ---
+		private CheckBox chkModelPlywood;
+		private CheckBox chkModelPrimaryJoists;
+		private CheckBox chkModelSecondaryJoists;
+		private CheckBox chkModelWalers;
+		private CheckBox chkModelProps;
+		private CheckBox chkSeparateCategories;
+
 		private Button btnOk;
 
 		private Button btnCancel;
@@ -60,7 +68,7 @@ namespace RevitShutteringAddin
 		private void InitializeComponent()
 		{
 			this.Text = "BIM TOOLS - Advanced DOKA / Universal Formwork Engine";
-			base.Size = new System.Drawing.Size(540, 720);
+			base.Size = new System.Drawing.Size(540, 830);
 			base.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
 			base.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
 			base.MaximizeBox = false;
@@ -308,8 +316,65 @@ namespace RevitShutteringAddin
 			groupBox4.Controls.Add(this.chkSkipGroundProps);
 			System.Windows.Forms.GroupBox groupBox5 = new System.Windows.Forms.GroupBox
 			{
-				Text = "CSV Quantity Report",
+				Text = "Formwork Component Filter & Category Separation",
 				Location = new System.Drawing.Point(num, 545),
+				Size = new System.Drawing.Size(num2, 105)
+			};
+			this.chkModelPlywood = new System.Windows.Forms.CheckBox
+			{
+				Text = "Plywood Sheathing (Touching Concrete Face)",
+				Location = new System.Drawing.Point(15, 22),
+				AutoSize = true,
+				Checked = true,
+				Font = new System.Drawing.Font("Segoe UI", 9f, System.Drawing.FontStyle.Bold)
+			};
+			this.chkModelPrimaryJoists = new System.Windows.Forms.CheckBox
+			{
+				Text = "Primary H20 Joists",
+				Location = new System.Drawing.Point(15, 48),
+				AutoSize = true,
+				Checked = true
+			};
+			this.chkModelSecondaryJoists = new System.Windows.Forms.CheckBox
+			{
+				Text = "Secondary Cross Joists",
+				Location = new System.Drawing.Point(230, 48),
+				AutoSize = true,
+				Checked = true
+			};
+			this.chkModelWalers = new System.Windows.Forms.CheckBox
+			{
+				Text = "Steel Walers & Clamps",
+				Location = new System.Drawing.Point(15, 74),
+				AutoSize = true,
+				Checked = true
+			};
+			this.chkModelProps = new System.Windows.Forms.CheckBox
+			{
+				Text = "Shoring & Push-Pull Props",
+				Location = new System.Drawing.Point(230, 74),
+				AutoSize = true,
+				Checked = true
+			};
+			this.chkSeparateCategories = new System.Windows.Forms.CheckBox
+			{
+				Text = "Separate Revit Categories (Floors/Walls/Framing/Columns) for easy filter/selection",
+				Location = new System.Drawing.Point(15, 96),
+				AutoSize = true,
+				Checked = true,
+				ForeColor = System.Drawing.Color.FromArgb(0, 102, 204)
+			};
+			groupBox5.Controls.Add(this.chkModelPlywood);
+			groupBox5.Controls.Add(this.chkModelPrimaryJoists);
+			groupBox5.Controls.Add(this.chkModelSecondaryJoists);
+			groupBox5.Controls.Add(this.chkModelWalers);
+			groupBox5.Controls.Add(this.chkModelProps);
+			groupBox5.Controls.Add(this.chkSeparateCategories);
+
+			System.Windows.Forms.GroupBox groupBox6 = new System.Windows.Forms.GroupBox
+			{
+				Text = "CSV Quantity Report",
+				Location = new System.Drawing.Point(num, 655),
 				Size = new System.Drawing.Size(num2, 55)
 			};
 			this.chkExportCsv = new System.Windows.Forms.CheckBox
@@ -319,12 +384,12 @@ namespace RevitShutteringAddin
 				AutoSize = true,
 				Checked = true
 			};
-			groupBox5.Controls.Add(this.chkExportCsv);
+			groupBox6.Controls.Add(this.chkExportCsv);
 			this.btnOk = new System.Windows.Forms.Button
 			{
 				Text = "Generate DOKA Formwork",
 				DialogResult = System.Windows.Forms.DialogResult.OK,
-				Location = new System.Drawing.Point(210, 615),
+				Location = new System.Drawing.Point(210, 725),
 				Size = new System.Drawing.Size(170, 42),
 				BackColor = System.Drawing.Color.FromArgb(0, 120, 215),
 				ForeColor = System.Drawing.Color.White,
@@ -336,7 +401,7 @@ namespace RevitShutteringAddin
 			{
 				Text = "Cancel",
 				DialogResult = System.Windows.Forms.DialogResult.Cancel,
-				Location = new System.Drawing.Point(390, 615),
+				Location = new System.Drawing.Point(390, 725),
 				Size = new System.Drawing.Size(120, 42),
 				FlatStyle = System.Windows.Forms.FlatStyle.Flat
 			};
@@ -345,6 +410,7 @@ namespace RevitShutteringAddin
 			base.Controls.Add(groupBox3);
 			base.Controls.Add(groupBox4);
 			base.Controls.Add(groupBox5);
+			base.Controls.Add(groupBox6);
 			base.Controls.Add(this.btnOk);
 			base.Controls.Add(this.btnCancel);
 			base.AcceptButton = this.btnOk;
@@ -379,6 +445,12 @@ namespace RevitShutteringAddin
 			numFixedHeight.Value = (decimal)_settings.DefaultPropHeightMm;
 			chkSkipGroundProps.Checked = _settings.SkipGroundSlabProps;
 			chkExportCsv.Checked = _settings.AutoExportCsv;
+			chkModelPlywood.Checked = _settings.ModelPlywood;
+			chkModelPrimaryJoists.Checked = _settings.ModelPrimaryJoists;
+			chkModelSecondaryJoists.Checked = _settings.ModelSecondaryJoists;
+			chkModelWalers.Checked = _settings.ModelWalers;
+			chkModelProps.Checked = _settings.ModelProps;
+			chkSeparateCategories.Checked = _settings.SeparateCategories;
 		}
 
 		private void BtnOk_Click(object sender, EventArgs e)
@@ -401,6 +473,12 @@ namespace RevitShutteringAddin
 			_settings.DefaultPropHeightMm = (double)numFixedHeight.Value;
 			_settings.SkipGroundSlabProps = chkSkipGroundProps.Checked;
 			_settings.AutoExportCsv = chkExportCsv.Checked;
+			_settings.ModelPlywood = chkModelPlywood.Checked;
+			_settings.ModelPrimaryJoists = chkModelPrimaryJoists.Checked;
+			_settings.ModelSecondaryJoists = chkModelSecondaryJoists.Checked;
+			_settings.ModelWalers = chkModelWalers.Checked;
+			_settings.ModelProps = chkModelProps.Checked;
+			_settings.SeparateCategories = chkSeparateCategories.Checked;
 		}
 	}
 }
