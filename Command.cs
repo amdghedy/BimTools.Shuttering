@@ -20,108 +20,135 @@ namespace RevitShutteringAddin
 
 		public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
 		{
-			UIDocument activeUIDocument = commandData.Application.ActiveUIDocument;
-			Document document = activeUIDocument.Document;
-			Autodesk.Revit.DB.View activeView = document.ActiveView;
-			if (activeView == null)
+			try
 			{
-				message = "No active view found.";
-				return Result.Failed;
-			}
-			ShutteringSettings shutteringSettings = new ShutteringSettings();
-			using (SettingsForm settingsForm = new SettingsForm(shutteringSettings))
-			{
-				IWin32Window owner = new WindowHandle(commandData.Application.MainWindowHandle);
-				if (settingsForm.ShowDialog(owner) != DialogResult.OK)
+				UIDocument activeUIDocument = commandData.Application.ActiveUIDocument;
+				Document document = activeUIDocument.Document;
+				Autodesk.Revit.DB.View activeView = document.ActiveView;
+				if (activeView == null)
 				{
-					return Result.Cancelled;
+					message = "No active view found.";
+					return Result.Failed;
 				}
-			}
-			List<ShutterRecord> list = new List<ShutterRecord>();
-			List<Element> list2 = new List<Element>();
-			List<Element> list3 = new List<Element>();
-			List<Element> list4 = new List<Element>();
-			List<Element> list5 = new List<Element>();
-			FilteredElementCollector filteredElementCollector = new FilteredElementCollector(document, activeView.Id);
-			foreach (Element item in filteredElementCollector)
-			{
-				if (item.Category != null)
+				ShutteringSettings shutteringSettings = new ShutteringSettings();
+				using (SettingsForm settingsForm = new SettingsForm(shutteringSettings))
 				{
-					long catId = RevitUtilities.GetIdValue(item.Category.Id);
-					if (shutteringSettings.ProcessSlabs && catId == -2000032)
+					IWin32Window owner = new WindowHandle(commandData.Application.MainWindowHandle);
+					if (settingsForm.ShowDialog(owner) != DialogResult.OK)
 					{
-						list2.Add(item);
-					}
-					else if (shutteringSettings.ProcessBeams && catId == -2001320)
-					{
-						list3.Add(item);
-					}
-					else if (shutteringSettings.ProcessColumns && catId == -2001330)
-					{
-						list4.Add(item);
-					}
-					else if (shutteringSettings.ProcessWalls && catId == -2000011)
-					{
-						list5.Add(item);
+						return Result.Cancelled;
 					}
 				}
-			}
-			if (list2.Count == 0 && list3.Count == 0 && list4.Count == 0 && list5.Count == 0)
-			{
-				TaskDialog.Show("Shuttering Tool", "No slabs, beams, columns, or walls found in the current view.");
-				return Result.Succeeded;
-			}
-			Dictionary<ElementId, List<Solid>> solidsMap = new Dictionary<ElementId, List<Solid>>();
-			foreach (Element item2 in list2)
-			{
-				solidsMap[item2.Id] = GetElementSolids(item2);
-			}
-			foreach (Element item3 in list3)
-			{
-				solidsMap[item3.Id] = GetElementSolids(item3);
-			}
-			foreach (Element item4 in list4)
-			{
-				solidsMap[item4.Id] = GetElementSolids(item4);
-			}
-			foreach (Element item5 in list5)
-			{
-				solidsMap[item5.Id] = GetElementSolids(item5);
-			}
-			List<Solid> list6 = list3.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
-			List<Solid> list7 = list4.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
-			List<Solid> list8 = list2.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
-			List<Solid> list9 = list5.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
-			double thicknessFeet = shutteringSettings.PanelThicknessMm / 304.8;
-			int num = 0;
-			using (Transaction transaction = new Transaction(document, "Create Shuttering"))
-			{
-				transaction.Start();
-				List<string> list10 = new List<string>
+
+				List<string> shutterNames = new List<string>
 				{
 					"Slab Under Shuttering", "Slab Side Shuttering", "Beam Bottom Shuttering", "Beam Side Shuttering", "Column Shuttering", "Wall Shuttering", "Slab Primary Joist", "Slab Secondary Joist", "Slab Scaffold Prop", "Wall Waler",
 					"Wall Push-Pull Prop", "Column Waler", "Column Support Prop", "Beam Bottom Support", "Beam Support Prop", "DOKA Dywidag Tie Rod", "DOKA Wing Nut Plate", "DOKA Perimeter Safety Post"
 				};
-				FilteredElementCollector source = new FilteredElementCollector(document, activeView.Id).OfClass(typeof(DirectShape));
-				List<ElementId> list11 = new List<ElementId>();
-				foreach (DirectShape item6 in source.Cast<DirectShape>())
+
+				// Clean up any previously generated shuttering DirectShapes first in a dedicated transaction
+				using (Transaction cleanupTrans = new Transaction(document, "Clean Previous Shuttering"))
 				{
-					if (list10.Contains(item6.Name))
-					{
-						list11.Add(item6.Id);
-					}
-				}
-				if (list11.Count > 0)
-				{
+					cleanupTrans.Start();
 					try
 					{
-						document.Delete(list11);
+						FilteredElementCollector existingDsCol = new FilteredElementCollector(document)
+							.OfClass(typeof(DirectShape))
+							.WhereElementIsNotElementType();
+						List<ElementId> toDelete = new List<ElementId>();
+						foreach (Element elem in existingDsCol.ToElements())
+						{
+							if (elem != null && elem.IsValidObject)
+							{
+								try
+								{
+									if (shutterNames.Contains(elem.Name))
+									{
+										toDelete.Add(elem.Id);
+									}
+								}
+								catch
+								{
+								}
+							}
+						}
+						if (toDelete.Count > 0)
+						{
+							document.Delete(toDelete);
+						}
 					}
 					catch
 					{
 					}
+					cleanupTrans.Commit();
 				}
-				double globalMinSlabZ = ((list8.Count > 0) ? list8.Min((Solid s) => GetSolidBoundingBox(s)?.Min.Z ?? double.MaxValue) : double.MinValue);
+
+				List<ShutterRecord> list = new List<ShutterRecord>();
+				List<Element> list2 = new List<Element>();
+				List<Element> list3 = new List<Element>();
+				List<Element> list4 = new List<Element>();
+				List<Element> list5 = new List<Element>();
+				FilteredElementCollector filteredElementCollector = new FilteredElementCollector(document, activeView.Id)
+					.WhereElementIsNotElementType();
+				foreach (Element item in filteredElementCollector)
+				{
+					if (item is DirectShape)
+					{
+						continue;
+					}
+					if (item.Category != null)
+					{
+						long catId = RevitUtilities.GetIdValue(item.Category.Id);
+						if (shutteringSettings.ProcessSlabs && catId == -2000032 && item is Floor)
+						{
+							list2.Add(item);
+						}
+						else if (shutteringSettings.ProcessBeams && catId == -2001320 && item is FamilyInstance)
+						{
+							list3.Add(item);
+						}
+						else if (shutteringSettings.ProcessColumns && (catId == -2001330 || catId == -2000100) && item is FamilyInstance)
+						{
+							list4.Add(item);
+						}
+						else if (shutteringSettings.ProcessWalls && catId == -2000011 && item is Wall)
+						{
+							list5.Add(item);
+						}
+					}
+				}
+				if (list2.Count == 0 && list3.Count == 0 && list4.Count == 0 && list5.Count == 0)
+				{
+					TaskDialog.Show("Shuttering Tool", "No slabs, beams, columns, or walls found in the current view.");
+					return Result.Succeeded;
+				}
+				Dictionary<ElementId, List<Solid>> solidsMap = new Dictionary<ElementId, List<Solid>>();
+				foreach (Element item2 in list2)
+				{
+					solidsMap[item2.Id] = GetElementSolids(item2);
+				}
+				foreach (Element item3 in list3)
+				{
+					solidsMap[item3.Id] = GetElementSolids(item3);
+				}
+				foreach (Element item4 in list4)
+				{
+					solidsMap[item4.Id] = GetElementSolids(item4);
+				}
+				foreach (Element item5 in list5)
+				{
+					solidsMap[item5.Id] = GetElementSolids(item5);
+				}
+				List<Solid> list6 = list3.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
+				List<Solid> list7 = list4.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
+				List<Solid> list8 = list2.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
+				List<Solid> list9 = list5.SelectMany((Element e) => solidsMap.ContainsKey(e.Id) ? solidsMap[e.Id] : new List<Solid>()).ToList();
+				double thicknessFeet = shutteringSettings.PanelThicknessMm / 304.8;
+				int num = 0;
+				using (Transaction transaction = new Transaction(document, "Create Shuttering"))
+				{
+					transaction.Start();
+					double globalMinSlabZ = ((list8.Count > 0) ? list8.Min((Solid s) => GetSolidBoundingBox(s)?.Min.Z ?? double.MaxValue) : double.MinValue);
 				Color color = new Color(245, 190, 20);
 				Color color2 = new Color(250, 210, 30);
 				Color color3 = new Color(0, 75, 150);
@@ -529,8 +556,8 @@ namespace RevitShutteringAddin
 					list19.AddRange(list20);
 				}
 
-				// Ensure all shuttering categories are visible in the active view
-				EnsureCategoriesVisibleInView(activeView, document, shutteringSettings.SeparateCategories);
+				// Ensure all shuttering categories are visible in the active view and 3D views for ACC / Forma
+				EnsureCategoriesVisibleInViews(document, activeView, shutteringSettings.SeparateCategories);
 
 				transaction.Commit();
 			}
@@ -538,11 +565,18 @@ namespace RevitShutteringAddin
 			{
 				ExportCsv(commandData.Application, list);
 			}
-			TaskDialog.Show("Shuttering Tool", $"Successfully created {num} shuttering elements with proper DirectShapeType definitions.\n\nAll elements are now assigned to well-defined Revit element types and visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma.");
+			TaskDialog.Show("Shuttering Tool", $"Successfully created {num} shuttering elements.\n\nAll elements are assigned to their distinct Revit categories with full component identity data (Comments, Mark, Area, Description) and are visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma.");
 			return Result.Succeeded;
 		}
+		catch (Exception ex)
+		{
+			message = ex.Message;
+			TaskDialog.Show("Shuttering Tool Error", $"An error occurred during formwork generation:\n\n{ex.Message}\n\nStack Trace:\n{ex.StackTrace}");
+			return Result.Failed;
+		}
+		}
 
-		private static void EnsureCategoriesVisibleInView(Autodesk.Revit.DB.View view, Document doc, bool separateCategories)
+		private static void EnsureCategoriesVisibleInViews(Document doc, Autodesk.Revit.DB.View activeView, bool separateCategories)
 		{
 			try
 			{
@@ -559,21 +593,47 @@ namespace RevitShutteringAddin
 					categoriesToCheck.Add(BuiltInCategory.OST_StructuralColumns);
 				}
 
-				foreach (BuiltInCategory bic in categoriesToCheck)
+				List<Autodesk.Revit.DB.View> viewsToCheck = new List<Autodesk.Revit.DB.View>();
+				if (activeView != null && !activeView.IsTemplate)
 				{
-					try
+					viewsToCheck.Add(activeView);
+				}
+
+				try
+				{
+					FilteredElementCollector vCol = new FilteredElementCollector(doc)
+						.OfClass(typeof(View3D))
+						.WhereElementIsNotElementType();
+					foreach (View3D v3 in vCol.Cast<View3D>())
 					{
-						Category cat = Category.GetCategory(doc, bic);
-						if (cat != null && view.CanCategoryBeHidden(cat.Id))
+						if (v3 != null && v3.IsValidObject && !v3.IsTemplate && !viewsToCheck.Any(v => v.Id == v3.Id))
 						{
-							if (view.GetCategoryHidden(cat.Id))
-							{
-								view.SetCategoryHidden(cat.Id, false);
-							}
+							viewsToCheck.Add(v3);
 						}
 					}
-					catch
+				}
+				catch
+				{
+				}
+
+				foreach (Autodesk.Revit.DB.View v in viewsToCheck)
+				{
+					foreach (BuiltInCategory bic in categoriesToCheck)
 					{
+						try
+						{
+							Category cat = Category.GetCategory(doc, bic);
+							if (cat != null && v.CanCategoryBeHidden(cat.Id))
+							{
+								if (v.GetCategoryHidden(cat.Id))
+								{
+									v.SetCategoryHidden(cat.Id, false);
+								}
+							}
+						}
+						catch
+						{
+						}
 					}
 				}
 			}
@@ -587,7 +647,7 @@ namespace RevitShutteringAddin
 			List<Solid> list = new List<Solid>();
 			Options options = new Options
 			{
-				ComputeReferences = true,
+				ComputeReferences = false,
 				DetailLevel = ViewDetailLevel.Fine
 			};
 			try
@@ -729,6 +789,11 @@ namespace RevitShutteringAddin
 
 		private static ElementId CreateDirectShape(Document doc, Solid solid, string name, string comment, Material material, BuiltInCategory builtInCat = BuiltInCategory.OST_GenericModel)
 		{
+			if (solid == null || solid.Volume <= 1E-05)
+			{
+				return ElementId.InvalidElementId;
+			}
+
 			try
 			{
 				ElementId catId = new ElementId(builtInCat);
@@ -738,40 +803,30 @@ namespace RevitShutteringAddin
 				}
 
 				DirectShape directShape = DirectShape.CreateElement(doc, catId);
+				if (directShape == null)
+				{
+					return ElementId.InvalidElementId;
+				}
+
 				directShape.ApplicationId = "BimTools.Shuttering";
 				directShape.ApplicationDataId = Guid.NewGuid().ToString();
 				directShape.Name = name;
-
-				// Associate with a DirectShapeType so ACC/Navisworks/Forma identify the Type and Family properly
-				try
-				{
-					DirectShapeType dsType = GetOrCreateDirectShapeType(doc, name, catId);
-					if (dsType != null)
-					{
-						directShape.SetTypeId(dsType.Id);
-					}
-				}
-				catch
-				{
-				}
 
 				directShape.SetShape(new List<GeometryObject> { solid });
 				double value = solid.Volume * 1.4158428;
 				string value2 = $"{comment} | Area: {Math.Round(value, 2)} m²";
 
-				Parameter parameter = ((Element)directShape).get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
-				if (parameter != null && !parameter.IsReadOnly)
-				{
-					parameter.Set(value2);
-				}
-				Parameter markParam = ((Element)directShape).get_Parameter(BuiltInParameter.ALL_MODEL_MARK);
-				if (markParam != null && !markParam.IsReadOnly)
-				{
-					markParam.Set(name);
-				}
+				// Populate standard Revit parameters so Autodesk Construction Cloud (ACC), Autodesk Forma, and Navisworks display rich element identity
+				SetParameterValue(directShape, BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS, value2);
+				SetParameterValue(directShape, BuiltInParameter.ALL_MODEL_MARK, name);
+				SetParameterValue(directShape, BuiltInParameter.ALL_MODEL_DESCRIPTION, comment);
+				SetParameterValue(directShape, BuiltInParameter.ALL_MODEL_MANUFACTURER, "DOKA / BIM Tools");
+				SetParameterValue(directShape, BuiltInParameter.ALL_MODEL_MODEL, name);
+
 				if (material != null)
 				{
-					Parameter parameter2 = ((Element)directShape).get_Parameter(BuiltInParameter.STRUCTURAL_MATERIAL_PARAM);
+					Parameter parameter2 = ((Element)directShape).get_Parameter(BuiltInParameter.STRUCTURAL_MATERIAL_PARAM)
+						?? ((Element)directShape).get_Parameter(BuiltInParameter.MATERIAL_ID_PARAM);
 					if (parameter2 != null && !parameter2.IsReadOnly)
 					{
 						parameter2.Set(material.Id);
@@ -780,7 +835,7 @@ namespace RevitShutteringAddin
 					{
 						foreach (Parameter parameter3 in directShape.Parameters)
 						{
-							if (parameter3.Definition.Name.Equals("Material", StringComparison.OrdinalIgnoreCase) && !parameter3.IsReadOnly)
+							if (parameter3.Definition != null && parameter3.Definition.Name.Equals("Material", StringComparison.OrdinalIgnoreCase) && !parameter3.IsReadOnly)
 							{
 								parameter3.Set(material.Id);
 								break;
@@ -796,24 +851,18 @@ namespace RevitShutteringAddin
 			}
 		}
 
-		private static DirectShapeType GetOrCreateDirectShapeType(Document doc, string typeName, ElementId categoryId)
+		private static void SetParameterValue(Element elem, BuiltInParameter bip, string value)
 		{
 			try
 			{
-				DirectShapeType dsType = new FilteredElementCollector(doc)
-					.OfClass(typeof(DirectShapeType))
-					.Cast<DirectShapeType>()
-					.FirstOrDefault(t => t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase) && t.Category.Id.Equals(categoryId));
-
-				if (dsType == null)
+				Parameter p = elem.get_Parameter(bip);
+				if (p != null && !p.IsReadOnly && p.StorageType == StorageType.String)
 				{
-					dsType = DirectShapeType.Create(doc, typeName, categoryId);
+					p.Set(value);
 				}
-				return dsType;
 			}
 			catch
 			{
-				return null;
 			}
 		}
 
