@@ -528,14 +528,58 @@ namespace RevitShutteringAddin
 					}
 					list19.AddRange(list20);
 				}
+
+				// Ensure all shuttering categories are visible in the active view
+				EnsureCategoriesVisibleInView(activeView, document, shutteringSettings.SeparateCategories);
+
 				transaction.Commit();
 			}
 			if (shutteringSettings.AutoExportCsv && list.Count > 0)
 			{
 				ExportCsv(commandData.Application, list);
 			}
-			TaskDialog.Show("Shuttering Tool", $"Successfully created {num} shuttering elements (Generic Models) in the current view.");
+			TaskDialog.Show("Shuttering Tool", $"Successfully created {num} shuttering elements with proper DirectShapeType definitions.\n\nAll elements are now assigned to well-defined Revit element types and visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma.");
 			return Result.Succeeded;
+		}
+
+		private static void EnsureCategoriesVisibleInView(Autodesk.Revit.DB.View view, Document doc, bool separateCategories)
+		{
+			try
+			{
+				List<BuiltInCategory> categoriesToCheck = new List<BuiltInCategory>
+				{
+					BuiltInCategory.OST_GenericModel
+				};
+
+				if (separateCategories)
+				{
+					categoriesToCheck.Add(BuiltInCategory.OST_Floors);
+					categoriesToCheck.Add(BuiltInCategory.OST_Walls);
+					categoriesToCheck.Add(BuiltInCategory.OST_StructuralFraming);
+					categoriesToCheck.Add(BuiltInCategory.OST_StructuralColumns);
+				}
+
+				foreach (BuiltInCategory bic in categoriesToCheck)
+				{
+					try
+					{
+						Category cat = Category.GetCategory(doc, bic);
+						if (cat != null && view.CanCategoryBeHidden(cat.Id))
+						{
+							if (view.GetCategoryHidden(cat.Id))
+							{
+								view.SetCategoryHidden(cat.Id, false);
+							}
+						}
+					}
+					catch
+					{
+					}
+				}
+			}
+			catch
+			{
+			}
 		}
 
 		private static List<Solid> GetElementSolids(Element elem)
@@ -687,11 +731,34 @@ namespace RevitShutteringAddin
 		{
 			try
 			{
-				DirectShape directShape = DirectShape.CreateElement(doc, new ElementId(builtInCat));
+				ElementId catId = new ElementId(builtInCat);
+				if (!DirectShape.IsValidCategoryId(catId, doc))
+				{
+					catId = new ElementId(BuiltInCategory.OST_GenericModel);
+				}
+
+				DirectShape directShape = DirectShape.CreateElement(doc, catId);
+				directShape.ApplicationId = "BimTools.Shuttering";
+				directShape.ApplicationDataId = Guid.NewGuid().ToString();
 				directShape.Name = name;
+
+				// Associate with a DirectShapeType so ACC/Navisworks/Forma identify the Type and Family properly
+				try
+				{
+					DirectShapeType dsType = GetOrCreateDirectShapeType(doc, name, catId);
+					if (dsType != null)
+					{
+						directShape.SetTypeId(dsType.Id);
+					}
+				}
+				catch
+				{
+				}
+
 				directShape.SetShape(new List<GeometryObject> { solid });
 				double value = solid.Volume * 1.4158428;
 				string value2 = $"{comment} | Area: {Math.Round(value, 2)} m²";
+
 				Parameter parameter = ((Element)directShape).get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
 				if (parameter != null && !parameter.IsReadOnly)
 				{
@@ -726,6 +793,27 @@ namespace RevitShutteringAddin
 			catch
 			{
 				return ElementId.InvalidElementId;
+			}
+		}
+
+		private static DirectShapeType GetOrCreateDirectShapeType(Document doc, string typeName, ElementId categoryId)
+		{
+			try
+			{
+				DirectShapeType dsType = new FilteredElementCollector(doc)
+					.OfClass(typeof(DirectShapeType))
+					.Cast<DirectShapeType>()
+					.FirstOrDefault(t => t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase) && t.Category.Id.Equals(categoryId));
+
+				if (dsType == null)
+				{
+					dsType = DirectShapeType.Create(doc, typeName, categoryId);
+				}
+				return dsType;
+			}
+			catch
+			{
+				return null;
 			}
 		}
 
