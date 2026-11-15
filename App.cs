@@ -69,6 +69,12 @@ namespace RevitShutteringAddin
 				};
 				ribbonPanel.AddSeparator();
 				ribbonPanel.AddItem(itemData);
+
+				PushButtonData selectSimilarData = new PushButtonData("SelectSimilarInView", "Select Similar\nin View", location, "RevitShutteringAddin.SelectSimilarCommand")
+				{
+					ToolTip = "Select all similar shuttering and scaffolding elements visible in the active view."
+				};
+				ribbonPanel.AddItem(selectSimilarData);
 			}
 			catch
 			{
