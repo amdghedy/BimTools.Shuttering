@@ -53,6 +53,7 @@ namespace RevitShutteringAddin
 		private CheckBox chkModelWalers;
 		private CheckBox chkModelProps;
 		private CheckBox chkSeparateCategories;
+		private CheckBox chkKeepOldShuttering;
 
 		private Button btnOk;
 
@@ -68,7 +69,7 @@ namespace RevitShutteringAddin
 		private void InitializeComponent()
 		{
 			this.Text = "BIM TOOLS - Advanced DOKA / Universal Formwork Engine";
-			base.Size = new System.Drawing.Size(540, 830);
+			base.Size = new System.Drawing.Size(540, 860);
 			base.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
 			base.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
 			base.MaximizeBox = false;
@@ -318,7 +319,7 @@ namespace RevitShutteringAddin
 			{
 				Text = "Formwork Component Filter & Category Separation",
 				Location = new System.Drawing.Point(num, 545),
-				Size = new System.Drawing.Size(num2, 105)
+				Size = new System.Drawing.Size(num2, 142)
 			};
 			this.chkModelPlywood = new System.Windows.Forms.CheckBox
 			{
@@ -364,17 +365,27 @@ namespace RevitShutteringAddin
 				Checked = true,
 				ForeColor = System.Drawing.Color.FromArgb(0, 102, 204)
 			};
+			this.chkKeepOldShuttering = new System.Windows.Forms.CheckBox
+			{
+				Text = "Keep old shuttering & scaffolding (prevent duplicate & overlapping items)",
+				Location = new System.Drawing.Point(15, 118),
+				AutoSize = true,
+				Checked = false,
+				ForeColor = System.Drawing.Color.FromArgb(0, 130, 60),
+				Font = new System.Drawing.Font("Segoe UI", 8.5f, System.Drawing.FontStyle.Bold)
+			};
 			groupBox5.Controls.Add(this.chkModelPlywood);
 			groupBox5.Controls.Add(this.chkModelPrimaryJoists);
 			groupBox5.Controls.Add(this.chkModelSecondaryJoists);
 			groupBox5.Controls.Add(this.chkModelWalers);
 			groupBox5.Controls.Add(this.chkModelProps);
 			groupBox5.Controls.Add(this.chkSeparateCategories);
+			groupBox5.Controls.Add(this.chkKeepOldShuttering);
 
 			System.Windows.Forms.GroupBox groupBox6 = new System.Windows.Forms.GroupBox
 			{
 				Text = "CSV Quantity Report",
-				Location = new System.Drawing.Point(num, 655),
+				Location = new System.Drawing.Point(num, 695),
 				Size = new System.Drawing.Size(num2, 55)
 			};
 			this.chkExportCsv = new System.Windows.Forms.CheckBox
@@ -389,7 +400,7 @@ namespace RevitShutteringAddin
 			{
 				Text = "Generate DOKA Formwork",
 				DialogResult = System.Windows.Forms.DialogResult.OK,
-				Location = new System.Drawing.Point(210, 725),
+				Location = new System.Drawing.Point(210, 765),
 				Size = new System.Drawing.Size(170, 42),
 				BackColor = System.Drawing.Color.FromArgb(0, 120, 215),
 				ForeColor = System.Drawing.Color.White,
@@ -401,7 +412,7 @@ namespace RevitShutteringAddin
 			{
 				Text = "Cancel",
 				DialogResult = System.Windows.Forms.DialogResult.Cancel,
-				Location = new System.Drawing.Point(390, 725),
+				Location = new System.Drawing.Point(390, 765),
 				Size = new System.Drawing.Size(120, 42),
 				FlatStyle = System.Windows.Forms.FlatStyle.Flat
 			};
@@ -451,6 +462,7 @@ namespace RevitShutteringAddin
 			chkModelWalers.Checked = _settings.ModelWalers;
 			chkModelProps.Checked = _settings.ModelProps;
 			chkSeparateCategories.Checked = _settings.SeparateCategories;
+			chkKeepOldShuttering.Checked = _settings.KeepOldShuttering;
 		}
 
 		private void BtnOk_Click(object sender, EventArgs e)
@@ -479,6 +491,7 @@ namespace RevitShutteringAddin
 			_settings.ModelWalers = chkModelWalers.Checked;
 			_settings.ModelProps = chkModelProps.Checked;
 			_settings.SeparateCategories = chkSeparateCategories.Checked;
+			_settings.KeepOldShuttering = chkKeepOldShuttering.Checked;
 		}
 	}
 }

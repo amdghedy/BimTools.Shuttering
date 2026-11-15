@@ -50,5 +50,7 @@ namespace RevitShutteringAddin
 		public bool ModelProps { get; set; } = true;
 
 		public bool SeparateCategories { get; set; } = true;
+
+		public bool KeepOldShuttering { get; set; } = false;
 	}
 }
