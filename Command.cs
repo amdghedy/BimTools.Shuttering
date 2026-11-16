@@ -23,7 +23,6 @@ namespace RevitShutteringAddin
 		{
 			try
 			{
-				_typeCache.Clear();
 				UIDocument activeUIDocument = commandData.Application.ActiveUIDocument;
 				Document document = activeUIDocument.Document;
 				Autodesk.Revit.DB.View activeView = document.ActiveView;
@@ -1112,85 +1111,6 @@ namespace RevitShutteringAddin
 			return solid;
 		}
 
-		private static readonly Dictionary<string, ElementId> _typeCache = new Dictionary<string, ElementId>(StringComparer.OrdinalIgnoreCase);
-
-		private static ElementId GetOrCreateDirectShapeType(Document doc, string typeName, ElementId catId, Solid sampleSolid)
-		{
-			if (string.IsNullOrEmpty(typeName) || doc == null || !doc.IsValidObject)
-			{
-				return ElementId.InvalidElementId;
-			}
-
-			string cacheKey = $"{catId.IntegerValue}_{typeName}";
-			if (_typeCache.TryGetValue(cacheKey, out ElementId cachedId) && cachedId != ElementId.InvalidElementId)
-			{
-				try
-				{
-					Element existing = doc.GetElement(cachedId);
-					if (existing != null && existing.IsValidObject)
-					{
-						return cachedId;
-					}
-				}
-				catch
-				{
-				}
-			}
-
-			try
-			{
-				DirectShapeType existingType = new FilteredElementCollector(doc)
-					.OfClass(typeof(DirectShapeType))
-					.Cast<DirectShapeType>()
-					.FirstOrDefault(t => t != null && t.IsValidObject && t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase) && t.Category != null && t.Category.Id == catId);
-
-				if (existingType != null)
-				{
-					_typeCache[cacheKey] = existingType.Id;
-					return existingType.Id;
-				}
-
-				DirectShapeType anyType = new FilteredElementCollector(doc)
-					.OfClass(typeof(DirectShapeType))
-					.Cast<DirectShapeType>()
-					.FirstOrDefault(t => t != null && t.IsValidObject && t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase));
-
-				if (anyType != null && anyType.Category != null && anyType.Category.Id == catId)
-				{
-					_typeCache[cacheKey] = anyType.Id;
-					return anyType.Id;
-				}
-
-				string uniqueName = (anyType == null) ? typeName : $"{typeName} ({catId.IntegerValue})";
-				DirectShapeType newType = DirectShapeType.Create(doc, uniqueName, catId);
-				if (newType != null && newType.IsValidObject)
-				{
-					if (sampleSolid != null && SafeGetVolume(sampleSolid) > 1E-05)
-					{
-						try
-						{
-							newType.AppendShape(new List<GeometryObject> { sampleSolid });
-						}
-						catch
-						{
-						}
-					}
-
-					SetParameterValue(newType, BuiltInParameter.ALL_MODEL_MODEL, typeName);
-					SetParameterValue(newType, BuiltInParameter.ALL_MODEL_MANUFACTURER, "DOKA / BIM Tools");
-					SetParameterValue(newType, BuiltInParameter.ALL_MODEL_DESCRIPTION, $"Shuttering System Component: {typeName}");
-
-					_typeCache[cacheKey] = newType.Id;
-					return newType.Id;
-				}
-			}
-			catch
-			{
-			}
-
-			return ElementId.InvalidElementId;
-		}
-
 		private static ElementId CreateDirectShape(Document doc, Solid solid, string name, string comment, Material material, BuiltInCategory builtInCat = BuiltInCategory.OST_GenericModel, ElementId hostId = null)
 		{
 			if (solid == null || SafeGetVolume(solid) <= 1E-05)
@@ -1217,37 +1137,7 @@ namespace RevitShutteringAddin
 				directShape.ApplicationDataId = hostVal > 0 ? $"HostId:{hostVal}|{name}" : Guid.NewGuid().ToString();
 				directShape.Name = name;
 
-				// Assign DirectShapeType to enable native Revit "Select All Instances" -> "Visible in View"
-				ElementId typeId = GetOrCreateDirectShapeType(doc, name, catId, solid);
-				if (typeId != null && typeId != ElementId.InvalidElementId)
-				{
-					try
-					{
-						if (directShape.CanHaveTypeAssigned() && directShape.IsValidTypeId(typeId))
-						{
-							directShape.SetTypeId(typeId);
-						}
-					}
-					catch
-					{
-					}
-				}
-
 				directShape.SetShape(new List<GeometryObject> { solid });
-
-				if (directShape.GetTypeId() == ElementId.InvalidElementId && typeId != null && typeId != ElementId.InvalidElementId)
-				{
-					try
-					{
-						if (directShape.CanHaveTypeAssigned() && directShape.IsValidTypeId(typeId))
-						{
-							directShape.SetTypeId(typeId);
-						}
-					}
-					catch
-					{
-					}
-				}
 				double vol = SafeGetVolume(solid);
 				double value = vol * 1.4158428;
 				string value2 = (hostVal > 0) ? $"[Host:{hostVal}] {comment} | Area: {Math.Round(value, 2)} m²" : $"{comment} | Area: {Math.Round(value, 2)} m²";
