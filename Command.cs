@@ -465,7 +465,7 @@ namespace RevitShutteringAddin
 											{
 												if (slab.Category != null)
 												{
-													try { cat = (BuiltInCategory)slab.Category.Id.IntegerValue; } catch { cat = BuiltInCategory.OST_Floors; }
+													try { cat = (BuiltInCategory)RevitUtilities.GetIdValue(slab.Category.Id); } catch { cat = BuiltInCategory.OST_Floors; }
 												}
 												else
 												{
@@ -520,7 +520,7 @@ namespace RevitShutteringAddin
 											{
 												if (slab.Category != null)
 												{
-													try { cat2 = (BuiltInCategory)slab.Category.Id.IntegerValue; } catch { cat2 = BuiltInCategory.OST_Floors; }
+													try { cat2 = (BuiltInCategory)RevitUtilities.GetIdValue(slab.Category.Id); } catch { cat2 = BuiltInCategory.OST_Floors; }
 												}
 												else
 												{
