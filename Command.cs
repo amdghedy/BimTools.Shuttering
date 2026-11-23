@@ -163,9 +163,30 @@ namespace RevitShutteringAddin
 				List<Element> list3 = new List<Element>();
 				List<Element> list4 = new List<Element>();
 				List<Element> list5 = new List<Element>();
-				FilteredElementCollector filteredElementCollector = new FilteredElementCollector(document, activeView.Id)
-					.WhereElementIsNotElementType();
-				foreach (Element item in filteredElementCollector)
+				// Check if the user pre-selected specific elements before running the tool
+				ICollection<ElementId> preSelectedIds = activeUIDocument.Selection?.GetElementIds();
+				IEnumerable<Element> sourceElements;
+				if (preSelectedIds != null && preSelectedIds.Count > 0)
+				{
+					List<Element> selList = new List<Element>();
+					foreach (ElementId selId in preSelectedIds)
+					{
+						Element e = document.GetElement(selId);
+						if (e != null && e.IsValidObject)
+						{
+							selList.Add(e);
+						}
+					}
+					sourceElements = selList;
+				}
+				else
+				{
+					sourceElements = new FilteredElementCollector(document, activeView.Id)
+						.WhereElementIsNotElementType()
+						.ToElements();
+				}
+
+				foreach (Element item in sourceElements)
 				{
 					if (item == null || !item.IsValidObject)
 					{
@@ -178,7 +199,10 @@ namespace RevitShutteringAddin
 					if (item.Category != null)
 					{
 						long catId = RevitUtilities.GetIdValue(item.Category.Id);
-						if (shutteringSettings.ProcessSlabs && catId == -2000032 && item is Floor)
+						// Support standard Floors (-2000032), Foundation Slabs / Mat Foundations (-2001300), and Flat Roof slabs (-2000035)
+						// Support both system families and in-place families
+						bool isSlabCat = (catId == -2000032 || catId == -2001300 || catId == -2000035);
+						if (shutteringSettings.ProcessSlabs && isSlabCat && (item is Floor || item is FamilyInstance || item is RoofBase))
 						{
 							list2.Add(item);
 						}
@@ -351,7 +375,7 @@ namespace RevitShutteringAddin
 				Material orCreateMaterial5 = GetOrCreateMaterial(document, "Formwork - Dywidag Tie Rod", color5);
 				List<Solid> list12 = new List<Solid>();
 				List<Solid> list13 = new List<Solid>();
-				foreach (Floor slab in list2.OfType<Floor>())
+				foreach (Element slab in list2)
 				{
 					try
 					{
@@ -370,26 +394,33 @@ namespace RevitShutteringAddin
 						double a = 0.0;
 						try
 						{
-							CompoundStructure compoundStructure = slab.FloorType?.GetCompoundStructure();
-							if (compoundStructure != null)
+							if (slab is Floor fl)
 							{
-								a = compoundStructure.GetWidth() * 304.8;
+								CompoundStructure compoundStructure = fl.FloorType?.GetCompoundStructure();
+								if (compoundStructure != null)
+								{
+									a = compoundStructure.GetWidth() * 304.8;
+								}
 							}
 						}
 						catch
 						{
 						}
-						string arg = $"{Math.Round(a)}mm";
-						double a2 = 0.0;
-						double a3 = 0.0;
 						BoundingBoxXYZ boundingBoxXYZ = null;
 						try
 						{
-							boundingBoxXYZ = ((Element)slab).get_BoundingBox((Autodesk.Revit.DB.View)null);
+							boundingBoxXYZ = slab.get_BoundingBox(null);
 						}
 						catch
 						{
 						}
+						if (a <= 0.001 && boundingBoxXYZ != null)
+						{
+							a = Math.Round((boundingBoxXYZ.Max.Z - boundingBoxXYZ.Min.Z) * 304.8);
+						}
+						string arg = $"{Math.Round(a)}mm";
+						double a2 = 0.0;
+						double a3 = 0.0;
 						if (boundingBoxXYZ != null)
 						{
 							double val = (boundingBoxXYZ.Max.X - boundingBoxXYZ.Min.X) * 304.8;
@@ -409,7 +440,7 @@ namespace RevitShutteringAddin
 									{
 										continue;
 									}
-									if (faceNormal.Z < -0.5)
+									if (faceNormal.Z < -0.3)
 									{
 										if (!shutteringSettings.ModelPlywood)
 										{
@@ -420,14 +451,27 @@ namespace RevitShutteringAddin
 										{
 											continue;
 										}
-										List<Solid> cutters = list6.Concat(list7).Concat(list12).ToList();
+										// Cutters for under-shuttering: Beams (list6), Columns (list7), and Walls (list9)
+										// Note: Do NOT subtract other slabs (list12), which erases drop panels and coincident adjacent slabs
+										List<Solid> cutters = list6.Concat(list7).Concat(list9).ToList();
 										solid = SubtractSolids(solid, cutters);
 										double vol = SafeGetVolume(solid);
 										if (vol > 1E-05)
 										{
 											double value = vol * 1.4158428;
 											string text = $"Slab Under Shuttering - {arg} | Area: {Math.Round(value, 2)} m²";
-											BuiltInCategory cat = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_Floors : BuiltInCategory.OST_GenericModel;
+											BuiltInCategory cat = BuiltInCategory.OST_GenericModel;
+											if (shutteringSettings.SeparateCategories)
+											{
+												if (slab.Category != null)
+												{
+													try { cat = (BuiltInCategory)slab.Category.Id.IntegerValue; } catch { cat = BuiltInCategory.OST_Floors; }
+												}
+												else
+												{
+													cat = BuiltInCategory.OST_Floors;
+												}
+											}
 											ElementId elementId = CreateDirectShape(document, solid, "Slab Under Shuttering", text, orCreateMaterial, cat, slab.Id);
 											if (elementId != ElementId.InvalidElementId)
 											{
@@ -471,7 +515,18 @@ namespace RevitShutteringAddin
 										{
 											double value2 = vol2 * 1.4158428;
 											string text2 = $"Slab Side Shuttering - {arg} | Area: {Math.Round(value2, 2)} m²";
-											BuiltInCategory cat2 = shutteringSettings.SeparateCategories ? BuiltInCategory.OST_Floors : BuiltInCategory.OST_GenericModel;
+											BuiltInCategory cat2 = BuiltInCategory.OST_GenericModel;
+											if (shutteringSettings.SeparateCategories)
+											{
+												if (slab.Category != null)
+												{
+													try { cat2 = (BuiltInCategory)slab.Category.Id.IntegerValue; } catch { cat2 = BuiltInCategory.OST_Floors; }
+												}
+												else
+												{
+													cat2 = BuiltInCategory.OST_Floors;
+												}
+											}
 											ElementId elementId2 = CreateDirectShape(document, solid2, "Slab Side Shuttering", text2, orCreateMaterial, cat2, slab.Id);
 											if (elementId2 != ElementId.InvalidElementId)
 											{
@@ -857,9 +912,10 @@ namespace RevitShutteringAddin
 			{
 				ExportCsv(commandData.Application, list);
 			}
+			string scopeMsg = $"\n\nModel elements processed:\n• Slabs / Floors: {list2.Count}\n• Beams: {list3.Count}\n• Columns: {list4.Count}\n• Walls: {list5.Count}";
 			string summaryMsg = shutteringSettings.KeepOldShuttering
-				? $"Successfully generated {num} new formwork & scaffolding elements.\n\nPreserved {preservedExistingCount} existing elements without duplication or overlap.\n\nAll elements are assigned to their distinct Revit categories and visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma."
-				: $"Successfully created {num} shuttering elements.\n\nAll elements are assigned to their distinct Revit categories with full component identity data (Comments, Mark, Area, Description) and are visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma.";
+				? $"Successfully generated {num} new formwork & scaffolding elements.\n\nPreserved {preservedExistingCount} existing elements without duplication or overlap.{scopeMsg}\n\nAll elements are assigned to their distinct Revit categories and visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma."
+				: $"Successfully created {num} shuttering elements.{scopeMsg}\n\nAll elements are assigned to their distinct Revit categories with full component identity data (Comments, Mark, Area, Description) and are visible for selection in Autodesk Construction Cloud (ACC) and Autodesk Forma.";
 			TaskDialog.Show("Shuttering Tool", summaryMsg);
 			return Result.Succeeded;
 		}
@@ -995,13 +1051,59 @@ namespace RevitShutteringAddin
 			try
 			{
 				IList<CurveLoop> edgesAsCurveLoops = face.GetEdgesAsCurveLoops();
-				IList<CurveLoop> list = SanitizeCurveLoops(edgesAsCurveLoops);
-				if (list.Count == 0)
+				if (edgesAsCurveLoops == null || edgesAsCurveLoops.Count == 0)
 				{
 					return null;
 				}
 				XYZ faceNormal = face.FaceNormal;
-				return GeometryCreationUtilities.CreateExtrusionGeometry(list, faceNormal, thicknessFeet);
+
+				// Try 1: Direct extrusion of native face curve loops
+				try
+				{
+					Solid directSolid = GeometryCreationUtilities.CreateExtrusionGeometry(edgesAsCurveLoops, faceNormal, thicknessFeet);
+					if (directSolid != null && SafeGetVolume(directSolid) > 1E-05)
+					{
+						return directSolid;
+					}
+				}
+				catch
+				{
+				}
+
+				// Try 2: Sanitized curve loops fallback
+				try
+				{
+					IList<CurveLoop> list = SanitizeCurveLoops(edgesAsCurveLoops);
+					if (list != null && list.Count > 0)
+					{
+						Solid sanSolid = GeometryCreationUtilities.CreateExtrusionGeometry(list, faceNormal, thicknessFeet);
+						if (sanSolid != null && SafeGetVolume(sanSolid) > 1E-05)
+						{
+							return sanSolid;
+						}
+					}
+				}
+				catch
+				{
+				}
+
+				// Try 3: Extrude only the outer boundary loop (loop 0)
+				try
+				{
+					if (edgesAsCurveLoops.Count > 0)
+					{
+						Solid outerSolid = GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { edgesAsCurveLoops[0] }, faceNormal, thicknessFeet);
+						if (outerSolid != null && SafeGetVolume(outerSolid) > 1E-05)
+						{
+							return outerSolid;
+						}
+					}
+				}
+				catch
+				{
+				}
+
+				return null;
 			}
 			catch
 			{
@@ -1461,7 +1563,7 @@ namespace RevitShutteringAddin
 			return currentSlabMinZ - defaultHeightFeet;
 		}
 
-		private static int CreateSlabSupports(Document doc, Floor slab, List<Solid> slabSolids, List<Solid> allSlabSolids, List<Solid> allBeamSolids, List<Solid> allColumnSolids, List<Solid> allWallSolids, double globalMinSlabZ, Material timberMat, Material propMat, List<ShutterRecord> records, ShutteringSettings settings, List<XYZ> propLocations = null)
+		private static int CreateSlabSupports(Document doc, Element slab, List<Solid> slabSolids, List<Solid> allSlabSolids, List<Solid> allBeamSolids, List<Solid> allColumnSolids, List<Solid> allWallSolids, double globalMinSlabZ, Material timberMat, Material propMat, List<ShutterRecord> records, ShutteringSettings settings, List<XYZ> propLocations = null)
 		{
 			int num = 0;
 			if (slabSolids == null || slabSolids.Count == 0)
