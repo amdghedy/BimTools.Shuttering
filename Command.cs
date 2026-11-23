@@ -436,17 +436,66 @@ namespace RevitShutteringAddin
 								if (item7 == null) continue;
 								foreach (Face face5 in item7.Faces)
 								{
-									if (!(face5 is PlanarFace { FaceNormal: var faceNormal } planarFace))
+									PlanarFace planarFace = face5 as PlanarFace;
+									XYZ faceNormal = null;
+									if (planarFace != null)
+									{
+										faceNormal = planarFace.FaceNormal;
+									}
+									else
+									{
+										try
+										{
+											BoundingBoxUV bboxUV = face5.GetBoundingBox();
+											UV midUV = new UV((bboxUV.Min.U + bboxUV.Max.U) / 2.0, (bboxUV.Min.V + bboxUV.Max.V) / 2.0);
+											faceNormal = face5.ComputeNormal(midUV);
+										}
+										catch
+										{
+										}
+									}
+
+									if (faceNormal == null)
 									{
 										continue;
 									}
+
 									if (faceNormal.Z < -0.3)
 									{
 										if (!shutteringSettings.ModelPlywood)
 										{
 											continue;
 										}
-										Solid solid = CreateShutteringSolid(planarFace, thicknessFeet);
+										Solid solid = null;
+										if (planarFace != null)
+										{
+											solid = CreateShutteringSolid(planarFace, thicknessFeet);
+										}
+										else
+										{
+											try
+											{
+												BoundingBoxUV faceBb = face5.GetBoundingBox();
+												if (faceBb != null)
+												{
+													XYZ p0 = face5.Evaluate(new UV(faceBb.Min.U, faceBb.Min.V));
+													XYZ p1 = face5.Evaluate(new UV(faceBb.Max.U, faceBb.Min.V));
+													XYZ p2 = face5.Evaluate(new UV(faceBb.Max.U, faceBb.Max.V));
+													XYZ p3 = face5.Evaluate(new UV(faceBb.Min.U, faceBb.Max.V));
+													double minX = Math.Min(Math.Min(p0.X, p1.X), Math.Min(p2.X, p3.X));
+													double maxX = Math.Max(Math.Max(p0.X, p1.X), Math.Max(p2.X, p3.X));
+													double minY = Math.Min(Math.Min(p0.Y, p1.Y), Math.Min(p2.Y, p3.Y));
+													double maxY = Math.Max(Math.Max(p0.Y, p1.Y), Math.Max(p2.Y, p3.Y));
+													double minZ = Math.Min(Math.Min(p0.Z, p1.Z), Math.Min(p2.Z, p3.Z));
+													XYZ minPt = new XYZ(minX, minY, minZ - thicknessFeet);
+													XYZ maxPt = new XYZ(maxX, maxY, minZ);
+													solid = RevitUtilities.CreateBoxSolid(minPt, maxPt);
+												}
+											}
+											catch
+											{
+											}
+										}
 										if (solid == null)
 										{
 											continue;
@@ -603,22 +652,73 @@ namespace RevitShutteringAddin
 								if (item9 == null) continue;
 								foreach (Face face6 in item9.Faces)
 								{
-									if (!(face6 is PlanarFace { FaceNormal: var faceNormal2 } planarFace2))
+									PlanarFace planarFace2 = face6 as PlanarFace;
+									XYZ faceNormal2 = null;
+									if (planarFace2 != null)
+									{
+										faceNormal2 = planarFace2.FaceNormal;
+									}
+									else
+									{
+										try
+										{
+											BoundingBoxUV bboxUV = face6.GetBoundingBox();
+											UV midUV = new UV((bboxUV.Min.U + bboxUV.Max.U) / 2.0, (bboxUV.Min.V + bboxUV.Max.V) / 2.0);
+											faceNormal2 = face6.ComputeNormal(midUV);
+										}
+										catch
+										{
+										}
+									}
+
+									if (faceNormal2 == null)
 									{
 										continue;
 									}
-									if (faceNormal2.Z < -0.5)
+
+									if (faceNormal2.Z < -0.3)
 									{
 										if (!shutteringSettings.ModelPlywood)
 										{
 											continue;
 										}
-										Solid solid3 = CreateShutteringSolid(planarFace2, thicknessFeet);
+										Solid solid3 = null;
+										if (planarFace2 != null)
+										{
+											solid3 = CreateShutteringSolid(planarFace2, thicknessFeet);
+										}
+										else
+										{
+											try
+											{
+												BoundingBoxUV faceBb = face6.GetBoundingBox();
+												if (faceBb != null)
+												{
+													XYZ p0 = face6.Evaluate(new UV(faceBb.Min.U, faceBb.Min.V));
+													XYZ p1 = face6.Evaluate(new UV(faceBb.Max.U, faceBb.Min.V));
+													XYZ p2 = face6.Evaluate(new UV(faceBb.Max.U, faceBb.Max.V));
+													XYZ p3 = face6.Evaluate(new UV(faceBb.Min.U, faceBb.Max.V));
+													double minX = Math.Min(Math.Min(p0.X, p1.X), Math.Min(p2.X, p3.X));
+													double maxX = Math.Max(Math.Max(p0.X, p1.X), Math.Max(p2.X, p3.X));
+													double minY = Math.Min(Math.Min(p0.Y, p1.Y), Math.Min(p2.Y, p3.Y));
+													double maxY = Math.Max(Math.Max(p0.Y, p1.Y), Math.Max(p2.Y, p3.Y));
+													double minZ = Math.Min(Math.Min(p0.Z, p1.Z), Math.Min(p2.Z, p3.Z));
+													XYZ minPt = new XYZ(minX, minY, minZ - thicknessFeet);
+													XYZ maxPt = new XYZ(maxX, maxY, minZ);
+													solid3 = RevitUtilities.CreateBoxSolid(minPt, maxPt);
+												}
+											}
+											catch
+											{
+											}
+										}
 										if (solid3 == null)
 										{
 											continue;
 										}
-										List<Solid> cutters3 = list7.Concat(list15).ToList();
+										// Cutters for beam bottom shuttering: Columns (list7) and Walls (list9) supporting beam from below
+										// Note: Do NOT subtract other beams (list15), which deletes continuous/meeting beams at nodes
+										List<Solid> cutters3 = list7.Concat(list9).ToList();
 										solid3 = SubtractSolids(solid3, cutters3);
 										double vol3 = SafeGetVolume(solid3);
 										if (vol3 > 1E-05)
@@ -999,7 +1099,8 @@ namespace RevitShutteringAddin
 			Options options = new Options
 			{
 				ComputeReferences = false,
-				DetailLevel = ViewDetailLevel.Fine
+				DetailLevel = ViewDetailLevel.Fine,
+				IncludeNonVisibleObjects = true
 			};
 			try
 			{
@@ -1027,14 +1128,57 @@ namespace RevitShutteringAddin
 			}
 			if (geomObj is GeometryInstance geometryInstance)
 			{
-				GeometryElement instanceGeometry = geometryInstance.GetInstanceGeometry();
+				int countBefore = solids.Count;
+				try
 				{
-					foreach (GeometryObject item in instanceGeometry)
+					GeometryElement instanceGeometry = geometryInstance.GetInstanceGeometry();
+					if (instanceGeometry != null)
 					{
-						AddSolids(item, solids);
+						foreach (GeometryObject item in instanceGeometry)
+						{
+							AddSolids(item, solids);
+						}
 					}
+				}
+				catch
+				{
+				}
+				if (solids.Count > countBefore)
+				{
 					return;
 				}
+
+				// Fallback to SymbolGeometry with instance transform
+				try
+				{
+					GeometryElement symbolGeometry = geometryInstance.GetSymbolGeometry();
+					if (symbolGeometry != null)
+					{
+						Transform trf = geometryInstance.Transform;
+						foreach (GeometryObject item in symbolGeometry)
+						{
+							if (item is Solid symSolid && SafeGetVolume(symSolid) > 1E-05)
+							{
+								try
+								{
+									Solid transformed = SolidUtils.CreateTransformed(symSolid, trf);
+									if (transformed != null && SafeGetVolume(transformed) > 1E-05)
+									{
+										solids.Add(transformed);
+									}
+								}
+								catch
+								{
+									solids.Add(symSolid);
+								}
+							}
+						}
+					}
+				}
+				catch
+				{
+				}
+				return;
 			}
 			if (!(geomObj is GeometryElement geometryElement))
 			{
@@ -1096,6 +1240,40 @@ namespace RevitShutteringAddin
 						if (outerSolid != null && SafeGetVolume(outerSolid) > 1E-05)
 						{
 							return outerSolid;
+						}
+					}
+				}
+				catch
+				{
+				}
+
+				// Try 4: Construct rectangular solid from face UV bounding box (bulletproof fallback)
+				try
+				{
+					BoundingBoxUV bboxUV = face.GetBoundingBox();
+					if (bboxUV != null)
+					{
+						XYZ p0 = face.Evaluate(new UV(bboxUV.Min.U, bboxUV.Min.V));
+						XYZ p1 = face.Evaluate(new UV(bboxUV.Max.U, bboxUV.Min.V));
+						XYZ p2 = face.Evaluate(new UV(bboxUV.Max.U, bboxUV.Max.V));
+						XYZ p3 = face.Evaluate(new UV(bboxUV.Min.U, bboxUV.Max.V));
+
+						if (p0.DistanceTo(p1) >= 0.006 && p1.DistanceTo(p2) >= 0.006)
+						{
+							CurveLoop rectLoop = new CurveLoop();
+							rectLoop.Append(Line.CreateBound(p0, p1));
+							rectLoop.Append(Line.CreateBound(p1, p2));
+							rectLoop.Append(Line.CreateBound(p2, p3));
+							rectLoop.Append(Line.CreateBound(p3, p0));
+
+							if (!rectLoop.IsOpen())
+							{
+								Solid rectSolid = GeometryCreationUtilities.CreateExtrusionGeometry(new List<CurveLoop> { rectLoop }, faceNormal, thicknessFeet);
+								if (rectSolid != null && SafeGetVolume(rectSolid) > 1E-05)
+								{
+									return rectSolid;
+								}
+							}
 						}
 					}
 				}
@@ -1188,6 +1366,8 @@ namespace RevitShutteringAddin
 			}
 
 			Solid solid = baseSolid;
+			BoundingBoxXYZ baseBb = GetSolidBoundingBox(solid);
+
 			foreach (Solid cutter in cutters)
 			{
 				if (cutter == null)
@@ -1200,10 +1380,22 @@ namespace RevitShutteringAddin
 					{
 						continue;
 					}
+
+					// Fast Bounding Box Pre-Check: Skip cutters that do not intersect this solid
+					if (baseBb != null)
+					{
+						BoundingBoxXYZ cutterBb = GetSolidBoundingBox(cutter);
+						if (cutterBb != null && !DoesBoundingBoxOverlap(baseBb, cutterBb, 0.01))
+						{
+							continue;
+						}
+					}
+
 					Solid solid2 = BooleanOperationsUtils.ExecuteBooleanOperation(solid, cutter, BooleanOperationsType.Difference);
 					if (solid2 != null && SafeGetVolume(solid2) > 1E-05)
 					{
 						solid = solid2;
+						baseBb = GetSolidBoundingBox(solid) ?? baseBb;
 					}
 				}
 				catch
