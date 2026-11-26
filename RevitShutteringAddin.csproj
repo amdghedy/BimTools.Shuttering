@@ -10,6 +10,7 @@
     <DefineConstants>$(DefineConstants)</DefineConstants>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <RevitApiPath Condition="'$(RevitApiPath)' == ''">C:\Program Files\Autodesk\Revit 2020</RevitApiPath>
   </PropertyGroup>
 
@@ -24,5 +25,9 @@
       <Private>false</Private>
     </Reference>
     <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.png" />
   </ItemGroup>
 </Project>

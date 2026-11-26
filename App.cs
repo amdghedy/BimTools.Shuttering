@@ -65,14 +65,18 @@ namespace RevitShutteringAddin
 				string location = Assembly.GetExecutingAssembly().Location;
 				PushButtonData itemData = new PushButtonData(text2, text2, location, "RevitShutteringAddin.Command")
 				{
-					ToolTip = "Generate shuttering elements for slabs, beams, columns, and walls in the active view."
+					ToolTip = "Generate shuttering elements for slabs, beams, columns, and walls in the active view.",
+					LargeImage = RibbonIcons.CreateShutteringIcon(32),
+					Image = RibbonIcons.CreateShutteringIcon(16)
 				};
 				ribbonPanel.AddSeparator();
 				ribbonPanel.AddItem(itemData);
 
 				PushButtonData selectSimilarData = new PushButtonData("SelectSimilarInView", "Select Similar\nin View", location, "RevitShutteringAddin.SelectSimilarCommand")
 				{
-					ToolTip = "Select all similar shuttering and scaffolding elements visible in the active view."
+					ToolTip = "Select all similar shuttering and scaffolding elements visible in the active view.",
+					LargeImage = RibbonIcons.CreateSelectSimilarIcon(32),
+					Image = RibbonIcons.CreateSelectSimilarIcon(16)
 				};
 				ribbonPanel.AddItem(selectSimilarData);
 			}
